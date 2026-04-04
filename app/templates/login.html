@@ -59,6 +59,17 @@
         <div class="logo-text">Acesso</div>
         <p class="text-muted mt-2">Entre na porteira digital da sua fazenda</p>
       </div>
+      
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show text-start" role="alert">
+              {{ message|safe }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      
       <form method="POST" action="/login">
         <div class="mb-3 text-start">
           <label class="form-label" for="emailId">E-mail</label>
@@ -73,16 +84,13 @@
         <div class="mb-3 form-check text-start">
           <input class="form-check-input" type="checkbox" id="rememberId" name="remember">
         </div>
+        <div class="mb-3 d-flex justify-content-between small">
+          <a href="/esqueci-senha" class="text-decoration-none">Esqueci minha senha</a>
+        </div>
         <button type="submit" class="btn btn-login w-100 py-2 mb-2 text-white">Entrar</button>
         
-        <p class="small text-muted">Não tem conta? <a href="/cadastro">Cadastre-se</a></p>
+        <p class="small text-muted mt-3">Não tem conta? <a href="/cadastro">Cadastre-se</a></p>
       </form>
     </div>
-    <script>
-      document.getElementById('esqueci-link').addEventListener('click', function(event) {
-        event.preventDefault();
-        document.getElementById('esqueci-aviso').style.display = 'block';
-      });
-    </script>
   </body>
 </html>

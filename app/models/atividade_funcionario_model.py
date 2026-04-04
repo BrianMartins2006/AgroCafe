@@ -14,6 +14,7 @@ class AtividadeFuncionario(db.Model):
     data = db.Column(db.Date, nullable=False)
     descricao = db.Column(db.String(255))
     horas_trabalhadas = db.Column(db.Numeric(5, 2))
+    foto_url = db.Column(db.Text, nullable=True)
     funcionario = db.relationship('Funcionario', backref='atividades')
 
     def __repr__(self):

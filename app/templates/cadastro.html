@@ -41,6 +41,17 @@
         <div class="logo-text">Cadastro</div>
         <p class="text-muted mt-2">Comece sua jornada na porteira da inovação</p>
       </div>
+      
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show text-start" role="alert">
+              {{ message|safe }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
       <form method="POST" action="/cadastro">
         <div class="mb-3 text-start">
           <label class="form-label" for="nomeId">Nome</label>

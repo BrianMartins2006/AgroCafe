@@ -78,6 +78,38 @@
             </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white">
+                    <i class="fas fa-camera-retro me-1 text-primary"></i>
+                    <strong>Fotos Recentes em Campo</strong>
+                </div>
+                <div class="card-body">
+                    {% if recent_photos %}
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-6 g-3">
+                        {% for photo in recent_photos %}
+                        <div class="col text-center">
+                            <a href="{{ photo.link }}" class="text-decoration-none">
+                                <div class="card h-100 shadow-sm border-0 bg-light rounded" style="overflow: hidden;">
+                                    <img src="{{ url_for('static', filename=photo.url) }}" class="card-img-top w-100 border-bottom" style="object-fit: cover; height: 130px; transition: transform 0.3s ease;" alt="Foto Recente" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                    <div class="card-body p-2 bg-white">
+                                      <h6 class="card-title text-truncate mb-0 fw-bold" style="font-size: 0.8rem; color: #495057;">{{ photo.title }}</h6>
+                                      <small class="text-muted" style="font-size: 0.70rem;"><i class="fas fa-calendar-day me-1 pt-1"></i>{{ photo.date }}</small>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0 p-4">Nenhuma evidência fotográfica mapeada pelas equipes recentemente.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -124,7 +156,7 @@
             labels: {{ chart_horas.labels | tojson }},
     datasets: [{
         data: {{ chart_horas.data | tojson }},
-        backgroundColor: ['#007bff', '#dc3545', '#ffc107', '#28a745'],
+        backgroundColor: ['#007bff', '#dc3545', '#ffc107', '#28a745','#7d2d88ff', '#12e0e0ff', '#e774b5ff'],
             }],
         },
     });

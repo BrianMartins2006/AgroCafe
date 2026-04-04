@@ -13,6 +13,7 @@ class Cultivo(db.Model):
     data_plantio = db.Column(db.Date)
     data_colheita = db.Column(db.Date)
     producao = db.Column(db.Numeric(10, 2))
+    foto_url = db.Column(db.Text, nullable=True)
     cultura = db.relationship('Cultura', backref='cultivos') 
 
     def __repr__(self):

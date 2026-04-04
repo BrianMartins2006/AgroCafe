@@ -15,3 +15,8 @@ class Config:
     
     # Define como False para não ocupar recursos desnecessariamente em projetos novos
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # Configuração para upload de arquivos
+    import os
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app', 'static', 'uploads', 'atividades')
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # Limite máximo de 5MB
