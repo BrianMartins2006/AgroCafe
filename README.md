@@ -149,5 +149,6 @@ Crie uma **branch**, faça suas alterações e abra um **Pull Request**!
 
 ## 🧑‍💻 Autores
 * Jose Carlos Souza :) eu ajudei
+* Brian Gustavo M. Silva : tbm participei
 
 
