@@ -1,0 +1,29 @@
+from app import db
+from datetime import datetime
+
+class Atividade(db.Model):
+    __tablename__ = 'atividade'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    id_lavoura_fk = db.Column(db.Integer, db.ForeignKey('lavoura.id'), nullable=False)
+    id_tipo_atividade_fk = db.Column(db.Integer, db.ForeignKey('tipo_atividade.id'), nullable=False)
+    data = db.Column(db.DateTime, default=datetime.utcnow)
+    descricao = db.Column(db.Text, nullable=True)
+    responsavel = db.Column(db.String(100), nullable=True)
+    
+    lavoura = db.relationship('Lavoura', backref='atividades')
+    tipo = db.relationship('TipoAtividade', backref='atividades')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'id_lavoura': self.id_lavoura_fk,
+            'tipo': self.tipo.to_dict() if self.tipo else None,
+            'data': self.data.isoformat(),
+            'descricao': self.descricao,
+            'responsavel': self.responsavel,
+            'imagens': [img.to_dict() for img in self.imagens]
+        }
+
+    def __repr__(self):
+        return f'<Atividade {self.id} for Lavoura {self.id_lavoura_fk}>'

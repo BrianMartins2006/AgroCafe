@@ -7,13 +7,10 @@ export default {
   theme: {
     extend: {
       colors: {
-        whatsapp: {
-          teal: '#075E54',
-          green: '#128C7E',
-          light: '#25D366',
-          blue: '#34B7F1',
-          bg: '#ECE5DD',
-        }
+        'whatsapp-teal': '#008069',
+        'whatsapp-green': '#25D366',
+        'whatsapp-light': '#F0F2F5',
+        'whatsapp-chat-bg': '#EFE7DE',
       }
     },
   },
