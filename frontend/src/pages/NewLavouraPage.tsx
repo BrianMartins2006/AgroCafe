@@ -1,28 +1,71 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Sprout, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Sprout, Check, Camera } from 'lucide-react';
 import Layout from '../components/Layout';
 
 const NewLavouraPage = () => {
+  const { id } = useParams();
+  const isEdit = !!id;
   const [nome, setNome] = useState('');
   const [cultura, setCultura] = useState('Café');
+  const [fotoPerfil, setFotoPerfil] = useState<string | null>(null);
+  const [imgFile, setImgFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isEdit) {
+      fetch(`/api/v1/lavouras`)
+        .then(res => res.json())
+        .then(data => {
+          const lavoura = data.find((l: any) => l.id === parseInt(id));
+          if (lavoura) {
+            setNome(lavoura.nome);
+            setCultura(lavoura.cultura);
+            setFotoPerfil(lavoura.foto_perfil);
+          }
+        });
+    }
+  }, [id, isEdit]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImgFile(file);
+      setFotoPerfil(URL.createObjectURL(file));
+    }
+  };
 
   const handleSave = async () => {
     if (!nome.trim() || loading) return;
 
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/lavouras', {
-        method: 'POST',
+      let finalFotoPerfil = fotoPerfil;
+
+      // Se tiver novo arquivo, faz upload primeiro
+      if (imgFile) {
+        const formData = new FormData();
+        formData.append('file', imgFile);
+        const uploadRes = await fetch('/api/v1/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          finalFotoPerfil = uploadData.url;
+        }
+      }
+
+      const response = await fetch(isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras', {
+        method: isEdit ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           nome,
           cultura,
-          foto_perfil: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=100&q=80", // Default
+          foto_perfil: finalFotoPerfil || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=100&q=80",
           id_usuario_fk: null
         }),
       });
@@ -31,48 +74,62 @@ const NewLavouraPage = () => {
         navigate('/');
       }
     } catch (err) {
-      console.error("Erro ao criar lavoura:", err);
+      console.error("Erro ao salvar lavoura:", err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Layout title="Nova Lavoura" showBackButton={true}>
-      <div className="p-6 space-y-6">
-        <div className="flex justify-center">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300">
-            <Sprout size={40} />
+    <Layout title={isEdit ? "Editar Lavoura" : "Nova Lavoura"} showBackButton={true}>
+      <div className="p-6 space-y-8 max-w-lg mx-auto">
+        {/* Foto de Perfil Upload */}
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative group">
+            <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-xl">
+              {fotoPerfil ? (
+                <img src={fotoPerfil} alt="Perfil" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                  <Sprout size={48} />
+                </div>
+              )}
+            </div>
+            <label className="absolute bottom-1 right-1 bg-whatsapp-teal text-white p-2 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform">
+              <Camera size={20} />
+              <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+            </label>
           </div>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Foto do Talhão</span>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-whatsapp-teal mb-1 uppercase tracking-wider">
+        <div className="space-y-6">
+          <div className="relative">
+            <label className="block text-xs font-bold text-whatsapp-teal mb-2 uppercase tracking-widest">
               Nome do Talhão
             </label>
             <input
               type="text"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              placeholder="Ex: Talhão 05 - Encosta"
-              className="w-full p-3 border-b-2 border-gray-200 focus:border-whatsapp-teal outline-none text-lg transition-colors bg-transparent"
+              placeholder="Ex: Talhão Prime - Lote A"
+              className="w-full p-0 py-2 border-b-2 border-gray-100 focus:border-whatsapp-teal outline-none text-xl font-medium transition-all bg-transparent placeholder:text-gray-300"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-whatsapp-teal mb-1 uppercase tracking-wider">
-              Cultura
+            <label className="block text-xs font-bold text-whatsapp-teal mb-3 uppercase tracking-widest">
+              Cultura Principal
             </label>
-            <div className="flex gap-2">
-              {['Café', 'Milho', 'Soja', 'Outro'].map((c) => (
+            <div className="flex flex-wrap gap-2">
+              {['Café', 'Milho', 'Soja', 'Trigo', 'Outro'].map((c) => (
                 <button
                   key={c}
                   onClick={() => setCultura(c)}
-                  className={`px-4 py-2 rounded-full border-2 transition-all ${
+                  className={`px-5 py-2 rounded-full text-sm font-bold border-2 transition-all ${
                     cultura === c 
-                    ? 'border-whatsapp-teal bg-whatsapp-teal text-white' 
-                    : 'border-gray-200 text-gray-500 hover:border-whatsapp-teal'
+                    ? 'border-whatsapp-teal bg-whatsapp-teal text-white shadow-md scale-105' 
+                    : 'border-gray-100 text-gray-400 hover:border-gray-200'
                   }`}
                 >
                   {c}
@@ -82,24 +139,26 @@ const NewLavouraPage = () => {
           </div>
         </div>
 
-        <div className="pt-10">
-          <p className="text-gray-400 text-xs text-center px-6">
-            Sua nova lavoura aparecerá na lista de conversas como um novo chat.
+        <div className="pt-8 text-center">
+          <p className="text-gray-400 text-[10px] leading-relaxed max-w-[200px] mx-auto italic">
+            {isEdit 
+              ? "As alterações serão refletidas em todos os registros deste talhão." 
+              : "Este talhão será criado como um novo chat na sua tela principal."}
           </p>
         </div>
       </div>
 
-      {/* Save Button (FAB style) */}
+      {/* Floating Action Button */}
       <button 
         onClick={handleSave}
         disabled={!nome.trim() || loading}
-        className={`fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
+        className={`fixed bottom-8 right-8 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all ${
           nome.trim() && !loading 
-          ? 'bg-whatsapp-green text-white active:scale-95' 
-          : 'bg-gray-300 text-white cursor-not-allowed'
+          ? 'bg-whatsapp-green text-white active:scale-90 hover:shadow-whatsapp-green/40 hover:shadow-2xl' 
+          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
         }`}
       >
-        <Check size={28} className={loading ? 'animate-spin' : ''} />
+        <Check size={32} className={loading ? 'animate-spin' : ''} />
       </button>
     </Layout>
   );

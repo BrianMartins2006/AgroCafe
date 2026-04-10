@@ -11,8 +11,9 @@ class Atividade(db.Model):
     descricao = db.Column(db.Text, nullable=True)
     responsavel = db.Column(db.String(100), nullable=True)
     
-    lavoura = db.relationship('Lavoura', backref='atividades')
+    lavoura = db.relationship('Lavoura', back_populates='atividades')
     tipo = db.relationship('TipoAtividade', backref='atividades')
+    imagens = db.relationship('AtividadeImagem', back_populates='atividade', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {

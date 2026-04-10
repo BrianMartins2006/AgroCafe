@@ -10,6 +10,7 @@ function App() {
         <Route path="/" element={<LavourasPage />} />
         <Route path="/chat/:id" element={<ChatPage />} />
         <Route path="/nova-lavoura" element={<NewLavouraPage />} />
+        <Route path="/editar-lavoura/:id" element={<NewLavouraPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

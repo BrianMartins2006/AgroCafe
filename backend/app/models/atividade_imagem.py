@@ -7,7 +7,8 @@ class AtividadeImagem(db.Model):
     id_atividade_fk = db.Column(db.Integer, db.ForeignKey('atividade.id'), nullable=False)
     foto_url = db.Column(db.String(255), nullable=False)
     
-    atividade = db.relationship('Atividade', backref='imagens')
+    # Relationship is defined in Atividade with back_populates='imagens'
+    atividade = db.relationship('Atividade', back_populates='imagens')
 
     def to_dict(self):
         return {

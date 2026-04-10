@@ -27,6 +27,30 @@ def create_lavoura():
     db.session.commit()
     return jsonify(nova_lavoura.to_dict()), 201
 
+@api.route('/lavouras/<int:id>', methods=['PUT', 'DELETE'])
+def handle_lavoura_id(id):
+    lavoura = Lavoura.query.get_or_404(id)
+    
+    if request.method == 'PUT':
+        data = request.json
+        lavoura.nome = data.get('nome', lavoura.nome)
+        lavoura.cultura = data.get('cultura', lavoura.cultura)
+        lavoura.foto_perfil = data.get('foto_perfil', lavoura.foto_perfil)
+        db.session.commit()
+        return jsonify(lavoura.to_dict())
+    
+    if request.method == 'DELETE':
+        db.session.delete(lavoura)
+        db.session.commit()
+        return jsonify({"message": "Lavoura excluída com sucesso"}), 200
+
+@api.route('/lavouras/<int:id>/pin', methods=['PATCH'])
+def toggle_lavoura_pin(id):
+    lavoura = Lavoura.query.get_or_404(id)
+    lavoura.is_pinned = not getattr(lavoura, 'is_pinned', False)
+    db.session.commit()
+    return jsonify(lavoura.to_dict())
+
 @api.route('/lavouras/<int:id>/atividades', methods=['GET'])
 def get_atividades_lavoura(id):
     atividades = Atividade.query.filter_by(id_lavoura_fk=id).order_by(Atividade.data.asc()).all()
