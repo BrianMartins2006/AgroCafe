@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LavourasPage from './pages/LavourasPage';
 import ChatPage from './pages/ChatPage';
+import NewLavouraPage from './pages/NewLavouraPage';
 
 function App() {
   return (
@@ -8,6 +9,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LavourasPage />} />
         <Route path="/chat/:id" element={<ChatPage />} />
+        <Route path="/nova-lavoura" element={<NewLavouraPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

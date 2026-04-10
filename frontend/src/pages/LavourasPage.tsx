@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sprout, MessageSquarePlus, Settings } from 'lucide-react';
+import { Sprout, MessageSquarePlus, Settings, Search } from 'lucide-react';
 import Layout from '../components/Layout';
 
 interface Lavoura {
@@ -15,6 +15,8 @@ interface Lavoura {
 const LavourasPage = () => {
   const [lavouras, setLavouras] = useState<Lavoura[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,21 +32,50 @@ const LavourasPage = () => {
       });
   }, []);
 
+  const filteredLavouras = lavouras.filter(l => 
+    l.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    l.cultura.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <Layout showTabs={true}>
+    <Layout 
+      showTabs={true} 
+      onSearchClick={() => setShowSearch(!showSearch)}
+    >
       <div className="bg-white min-h-full">
-        {loading ? (
-          <div className="flex justify-center items-center h-[60vh] text-gray-400">
-            Carregando sua fazenda...
+        {/* Search Bar */}
+        {showSearch && (
+          <div className="p-3 bg-gray-50 border-b border-gray-100 animate-in slide-in-from-top-2 duration-200">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Pesquisar lavoura ou cultura..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                autoFocus
+                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-whatsapp-teal transition-all"
+              />
+            </div>
           </div>
-        ) : lavouras.length === 0 ? (
-          <div className="flex flex-col justify-center items-center h-[60vh] text-gray-400 p-8 text-center">
-            <Sprout size={48} className="mb-4 opacity-20" />
-            <p>Nenhuma lavoura cadastrada ainda.</p>
-            <p className="text-sm">Toque no botão verde para começar.</p>
+        )}
+
+        {loading ? (
+          <div className="p-10 text-center text-gray-500 italic">
+            Carregando seus chats...
+          </div>
+        ) : filteredLavouras.length === 0 ? (
+          <div className="p-10 text-center text-gray-500">
+            <div className="mb-4 flex justify-center text-gray-300">
+              <Sprout size={64} />
+            </div>
+            <p className="font-medium text-gray-600">
+              {searchTerm ? 'Nenhuma lavoura encontrada para sua busca.' : 'Nenhuma lavoura cadastrada ainda.'}
+            </p>
+            <p className="text-sm mt-1">Toque no botão verde para começar.</p>
           </div>
         ) : (
-          lavouras.map((lavoura) => (
+          filteredLavouras.map((lavoura) => (
             <div 
               key={lavoura.id}
               onClick={() => navigate(`/chat/${lavoura.id}`)}
@@ -53,7 +84,7 @@ const LavourasPage = () => {
               {/* Avatar */}
               <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 bg-gray-200">
                 <img 
-                  src={lavoura.foto_perfil || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=100&q=80"} 
+                  src={lavoura.foto_perfil || "/images/default-lavoura.jpg"} 
                   alt={lavoura.nome} 
                   className="w-full h-full object-cover" 
                 />
@@ -76,7 +107,10 @@ const LavourasPage = () => {
       </div>
 
       {/* Floating Action Button */}
-      <button className="fixed bottom-6 right-6 w-14 h-14 bg-whatsapp-green text-white rounded-full shadow-lg flex items-center justify-center hover:bg-whatsapp-teal transition-transform active:scale-95 z-50">
+      <button 
+        onClick={() => navigate('/nova-lavoura')}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-whatsapp-green text-white rounded-full shadow-lg flex items-center justify-center hover:bg-whatsapp-teal transition-transform active:scale-95 z-50"
+      >
         <MessageSquarePlus size={24} />
       </button>
 

@@ -7,9 +7,16 @@ interface LayoutProps {
   title?: string;
   showTabs?: boolean;
   showBackButton?: boolean;
+  onSearchClick?: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, title = 'AgroCafé', showTabs = false, showBackButton = false }) => {
+const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  title = 'AgroCafé', 
+  showTabs = false, 
+  showBackButton = false,
+  onSearchClick
+}) => {
   const navigate = useNavigate();
   return (
     <div className="flex flex-col h-screen bg-white">
@@ -26,7 +33,11 @@ const Layout: React.FC<LayoutProps> = ({ children, title = 'AgroCafé', showTabs
           <h1 className="text-xl font-semibold">{title}</h1>
         </div>
         <div className="flex gap-4">
-          <Search size={24} className="cursor-pointer opacity-80 hover:opacity-100" />
+          <Search 
+            size={24} 
+            className="cursor-pointer opacity-80 hover:opacity-100" 
+            onClick={onSearchClick}
+          />
           <MoreVertical size={24} className="cursor-pointer opacity-80 hover:opacity-100" />
         </div>
       </header>
