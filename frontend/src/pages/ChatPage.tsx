@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Send, Image as ImageIcon, User, Calendar, Edit, Trash } from 'lucide-react';
+import { Send, Image as ImageIcon, User, Calendar, Edit, Trash, Sprout, Truck, Wind, Search } from 'lucide-react';
+
+const CategoryIcon = ({ name, size = 14 }: { name: string; size?: number }) => {
+  const icons: Record<string, any> = {
+    Sprouts: Sprout,
+    Truck: Truck,
+    Wind: Wind,
+    Search: Search
+  };
+  const IconComponent = icons[name] || Search;
+  return <IconComponent size={size} />;
+};
 import Layout from '../components/Layout';
 
 interface TipoAtividade {
@@ -266,7 +277,7 @@ const ChatPage = () => {
                   : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                 }`}
               >
-                <span>{t.icone}</span>
+                <CategoryIcon name={t.icone} />
                 {t.nome}
               </button>
             ))}
@@ -295,7 +306,8 @@ const ChatPage = () => {
                     </button>
                   </div>
 
-                  <div className={`text-[10px] font-bold uppercase mb-1 px-2 py-0.5 rounded-full inline-block text-white ${atv.tipo.cor}`}>
+                  <div className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase mb-1 px-2 py-0.5 rounded-full text-white ${atv.tipo.cor}`}>
+                    <CategoryIcon name={atv.tipo.icone} size={10} />
                     {atv.tipo.nome}
                   </div>
                   
