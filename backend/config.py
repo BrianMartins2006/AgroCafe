@@ -10,7 +10,10 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'chave_secreta_fallback_para_dev')
     
     # Configuração da URI de conexão. Tenta buscar uma URL pronta inteira primeiro, se não achar, monta a do MySQL
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}")
+    _db_url = os.getenv('DATABASE_URL', f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}")
+    if _db_url.startswith("postgres://"):
+        _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = _db_url
     
     # Define como False para não ocupar recursos desnecessariamente em projetos novos
     SQLALCHEMY_TRACK_MODIFICATIONS = False
