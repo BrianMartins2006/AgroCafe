@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sprout, User, Calendar, MessageSquare } from 'lucide-react';
+import { User, MessageSquare } from 'lucide-react';
 import Layout from '../components/Layout';
 
 interface TipoAtividade {

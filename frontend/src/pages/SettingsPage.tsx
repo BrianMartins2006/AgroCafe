@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, Truck, ChevronRight, Plus, User, 
-  LayoutGrid, Trash2, Edit, X, Check, Search, Palette,
+  LayoutGrid, Trash2, Edit, X, Check,
   Sprout, Wind, Zap, Droplets, Sun, Hammer
 } from 'lucide-react';
 import Layout from '../components/Layout';
@@ -98,7 +98,7 @@ const SettingsPage = () => {
 
       if (res.ok) {
         setShowModal(false);
-        toast.success(editingId ? "Categoria atualizada!" : "Categoria salva!");
+        toast.success(editingTipo ? "Categoria atualizada!" : "Categoria salva!");
         loadData();
       } else {
         const errorData = await res.json();

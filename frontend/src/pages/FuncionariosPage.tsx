@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, Plus, Edit, Trash2, User, 
+  Plus, Edit, Trash2, User, 
   Briefcase, DollarSign, Phone, Search, X, Check 
 } from 'lucide-react';
 import Layout from '../components/Layout';

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, Plus, Edit, Trash2, Truck, 
-  Settings, DollarSign, Zap, Search, X, Check 
+  Plus, Edit, Trash2, Truck, 
+  Settings, DollarSign, Zap, X, Check 
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';

@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Send, Camera, Plus, X, User, Calendar, 
-  MessageSquare, MoreVertical, Search, Edit, 
-  Trash2, Check, ChevronDown, Briefcase,
+  Send, Plus, X, User, Edit, 
+  Trash2, Check, ChevronDown,
   Sprout, Wind, Zap, Droplets, Sun, Hammer, LayoutGrid,
   Image as ImageIcon
 } from 'lucide-react';

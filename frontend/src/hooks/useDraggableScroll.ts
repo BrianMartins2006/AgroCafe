@@ -17,7 +17,7 @@ export function useDraggableScroll<T extends HTMLElement>() {
     setIsDragging(false);
   };
 
-  const onMouseUp = (e: MouseEvent) => {
+  const onMouseUp = () => {
     setIsDragging(false);
   };
 

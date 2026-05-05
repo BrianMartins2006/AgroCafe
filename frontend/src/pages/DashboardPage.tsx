@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
+  XAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 import { 
   TrendingUp, Users, Truck, MessageSquare, 
-  ArrowUpRight, ArrowDownRight, Calendar, Filter 
+  ArrowUpRight, Calendar, Filter 
 } from 'lucide-react';
 import Layout from '../components/Layout';
 
@@ -160,7 +160,7 @@ const DashboardPage = () => {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {stats.pieData.map((entry: any, index: number) => (
+                    {stats.pieData.map((_: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

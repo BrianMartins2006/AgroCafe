@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  ArrowLeft, Search, MessageCircle, Globe, 
-  TrendingUp, UserCircle, MessageSquare, LayoutGrid, BarChart2
+  ArrowLeft, Search, 
+  UserCircle, MessageSquare, LayoutGrid, BarChart2
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -13,6 +13,7 @@ interface LayoutProps {
   onTitleClick?: () => void;
   avatarUrl?: string;
   subtitle?: string;
+  showTabs?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 

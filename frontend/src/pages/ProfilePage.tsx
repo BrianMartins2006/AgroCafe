@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Lock, Camera, Check, X } from 'lucide-react';
+import { User, Mail, Lock, Camera, Check } from 'lucide-react';
 import Layout from '../components/Layout';
 
 interface UserProfile {
@@ -11,7 +10,6 @@ interface UserProfile {
 }
 
 const ProfilePage = () => {
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

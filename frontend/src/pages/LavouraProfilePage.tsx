@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Calendar, MapPin, Sprout, Image as ImageIcon, ChevronRight, X } from 'lucide-react';
-import Layout from '../components/Layout';
+
 
 interface Lavoura {
   id: number;
