@@ -1,11 +1,45 @@
 import os
 from flask import Blueprint, jsonify, request, current_app
+from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
-from app.models import Lavoura, Atividade, TipoAtividade, AtividadeImagem
+from app.models import Lavoura, Atividade, TipoAtividade, AtividadeImagem, Funcionario, Maquinario, Usuario
 
 # O Blueprint para a nossa API
 api = Blueprint('api', __name__)
+
+# --- Rotas de Perfil ---
+
+@api.route('/perfil', methods=['GET'])
+def get_perfil():
+    # Se não estiver logado (e para facilitar testes enquanto o front não envia cookies/auth)
+    # vamos pegar o primeiro usuário se o current_user não estiver autenticado.
+    # TODO: Remover fallback para produção
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+        if not user:
+            return jsonify({"erro": "Nenhum usuário encontrado"}), 404
+            
+    return jsonify(user.to_dict())
+
+@api.route('/perfil', methods=['PUT'])
+def update_perfil():
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+        if not user:
+            return jsonify({"erro": "Nenhum usuário encontrado"}), 404
+
+    data = request.json
+    user.nome = data.get('nome', user.nome)
+    user.email = data.get('email', user.email)
+    
+    if data.get('senha'):
+        user.set_password(data.get('senha'))
+        
+    db.session.commit()
+    return jsonify(user.to_dict())
 
 # --- Rotas de Lavouras ---
 
@@ -44,6 +78,27 @@ def handle_lavoura_id(id):
         db.session.commit()
         return jsonify({"message": "Lavoura excluída com sucesso"}), 200
 
+@api.route('/lavouras/<int:id>', methods=['GET'])
+def get_lavoura(id):
+    lavoura = Lavoura.query.get_or_404(id)
+    return jsonify(lavoura.to_dict())
+
+@api.route('/lavouras/<int:id>/media', methods=['GET'])
+def get_lavoura_media(id):
+    atividades = Atividade.query.filter_by(id_lavoura_fk=id).all()
+    imagens = []
+    for atv in atividades:
+        for img in atv.imagens:
+            imagens.append({
+                "id": img.id,
+                "foto_url": img.foto_url,
+                "data": atv.data.isoformat(),
+                "atividade_id": atv.id
+            })
+    # Ordenar por data mais recente
+    imagens.sort(key=lambda x: x['data'], reverse=True)
+    return jsonify(imagens)
+
 @api.route('/lavouras/<int:id>/pin', methods=['PATCH'])
 def toggle_lavoura_pin(id):
     lavoura = Lavoura.query.get_or_404(id)
@@ -59,6 +114,11 @@ def get_atividades_lavoura(id):
 from datetime import datetime
 
 # --- Rotas de Atividades ---
+
+@api.route('/feed', methods=['GET'])
+def get_global_feed():
+    atividades = Atividade.query.order_by(Atividade.data.desc()).all()
+    return jsonify([a.to_dict() for a in atividades])
 
 @api.route('/atividades', methods=['POST'])
 def create_atividade():
@@ -138,9 +198,6 @@ def delete_atividade(id):
     if not atividade:
         return jsonify({"erro": "Atividade não encontrada"}), 404
     
-    # Imagens associadas serão deletadas se configurado cascade, 
-    # se não, deletamos manualmente
-    AtividadeImagem.query.filter_by(id_atividade_fk=id).delete()
     db.session.delete(atividade)
     db.session.commit()
     return '', 204
@@ -170,7 +227,107 @@ def upload_file():
         file_url = f"/static/uploads/atividades/{filename}"
         return jsonify({"url": file_url}), 201
 
+@api.route('/tipos-atividade', methods=['POST'])
+def create_tipo_atividade():
+    data = request.json
+    novo_tipo = TipoAtividade(
+        nome=data.get('nome'),
+        icone=data.get('icone') or "Search",
+        cor=data.get('cor') or "bg-gray-500"
+    )
+    db.session.add(novo_tipo)
+    db.session.commit()
+    return jsonify(novo_tipo.to_dict()), 201
+
+@api.route('/tipos-atividade/<int:id>', methods=['PUT', 'DELETE'])
+def handle_tipo_atividade(id):
+    tipo = TipoAtividade.query.get_or_404(id)
+    
+    if request.method == 'PUT':
+        data = request.json
+        tipo.nome = data.get('nome', tipo.nome)
+        tipo.icone = data.get('icone', tipo.icone)
+        tipo.cor = data.get('cor', tipo.cor)
+        db.session.commit()
+        return jsonify(tipo.to_dict())
+    
+    if request.method == 'DELETE':
+        db.session.delete(tipo)
+        db.session.commit()
+        return jsonify({"message": "Tipo de atividade excluído"}), 200
+
 @api.route('/tipos-atividade', methods=['GET'])
 def get_tipos_atividade():
     tipos = TipoAtividade.query.all()
     return jsonify([t.to_dict() for t in tipos])
+# --- Rotas de Funcionários ---
+
+@api.route('/funcionarios', methods=['GET'])
+def get_funcionarios():
+    funcionarios = Funcionario.query.all()
+    return jsonify([f.to_dict() for f in funcionarios])
+
+@api.route('/funcionarios', methods=['POST'])
+def create_funcionario():
+    data = request.json
+    novo = Funcionario(
+        nome=data.get('nome'),
+        cargo=data.get('cargo'),
+        salario_hora=data.get('salario_hora'),
+        contato=data.get('contato')
+    )
+    db.session.add(novo)
+    db.session.commit()
+    return jsonify(novo.to_dict()), 201
+
+@api.route('/funcionarios/<int:id>', methods=['PUT', 'DELETE'])
+def handle_funcionario(id):
+    func = Funcionario.query.get_or_404(id)
+    if request.method == 'PUT':
+        data = request.json
+        func.nome = data.get('nome', func.nome)
+        func.cargo = data.get('cargo', func.cargo)
+        func.salario_hora = data.get('salario_hora', func.salario_hora)
+        func.contato = data.get('contato', func.contato)
+        db.session.commit()
+        return jsonify(func.to_dict())
+    if request.method == 'DELETE':
+        db.session.delete(func)
+        db.session.commit()
+        return jsonify({"message": "Funcionário excluído"}), 200
+
+# --- Rotas de Maquinário ---
+
+@api.route('/maquinarios', methods=['GET'])
+def get_maquinarios():
+    maquinas = Maquinario.query.all()
+    return jsonify([m.to_dict() for m in maquinas])
+
+@api.route('/maquinarios', methods=['POST'])
+def create_maquinario():
+    data = request.json
+    novo = Maquinario(
+        tipo=data.get('tipo'),
+        modelo=data.get('modelo'),
+        valor_hora=data.get('valor_hora'),
+        consumo_medio=data.get('consumo_medio')
+    )
+    db.session.add(novo)
+    db.session.commit()
+    return jsonify(novo.to_dict()), 201
+
+@api.route('/maquinarios/<int:id>', methods=['PUT', 'DELETE'])
+def handle_maquinario(id):
+    maquina = Maquinario.query.get_or_404(id)
+    if request.method == 'PUT':
+        data = request.json
+        maquina.tipo = data.get('tipo', maquina.tipo)
+        maquina.modelo = data.get('modelo', maquina.modelo)
+        maquina.valor_hora = data.get('valor_hora', maquina.valor_hora)
+        maquina.consumo_medio = data.get('consumo_medio', maquina.consumo_medio)
+        db.session.commit()
+        return jsonify(maquina.to_dict())
+    if request.method == 'DELETE':
+        db.session.delete(maquina)
+        db.session.commit()
+        return jsonify({"message": "Maquinário excluído"}), 200

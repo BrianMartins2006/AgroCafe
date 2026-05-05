@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Send, Image as ImageIcon, User, Calendar, Edit, Trash, Sprout, Truck, Wind, Search } from 'lucide-react';
+import { Send, Image as ImageIcon, User, Calendar, Edit, Trash, Sprout, Truck, Wind, Search, X } from 'lucide-react';
 
 const CategoryIcon = ({ name, size = 14 }: { name: string; size?: number }) => {
   const icons: Record<string, any> = {
@@ -50,6 +50,7 @@ const ChatPage = () => {
   // Modals / Flow States
   const [editingAtv, setEditingAtv] = useState<any | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0); // 0 = Geral
   
   // New Activity Form State
@@ -187,8 +188,7 @@ const ChatPage = () => {
   };
 
   const handleDelete = async (atvId: number) => {
-    if (!confirm("Tem certeza que deseja apagar este registro?")) return;
-    
+    setDeletingId(null);
     try {
       const res = await fetch(`/api/v1/atividades/${atvId}`, { method: 'DELETE' });
       if (res.ok) loadAtividades();
@@ -238,6 +238,7 @@ const ChatPage = () => {
       title={lavoura?.nome || 'Chat'} 
       showBackButton={true}
       onSearchClick={() => setShowSearch(!showSearch)}
+      onTitleClick={() => navigate(`/lavoura/${id}/perfil`)}
     >
       <div className="flex flex-col h-full bg-whatsapp-chat-bg relative">
         {/* Search Area */}
@@ -301,7 +302,7 @@ const ChatPage = () => {
                     <button onClick={() => setEditingAtv(atv)} className="p-1 text-gray-400 hover:text-blue-500 rounded bg-white/80 shadow-sm">
                       <Edit size={14} />
                     </button>
-                    <button onClick={() => handleDelete(atv.id)} className="p-1 text-gray-400 hover:text-red-500 rounded bg-white/80 shadow-sm">
+                    <button onClick={() => setDeletingId(atv.id)} className="p-1 text-gray-400 hover:text-red-500 rounded bg-white/80 shadow-sm">
                       <Trash size={14} />
                     </button>
                   </div>
@@ -394,8 +395,10 @@ const ChatPage = () => {
                         <img src={url} className="w-full h-full object-cover" />
                         <button 
                           onClick={() => setNewAtvForm({ ...newAtvForm, fotos: newAtvForm.fotos.filter((_, i) => i !== idx) })}
-                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]"
-                        >×</button>
+                          className="absolute top-1 right-1 bg-black/30 hover:bg-red-500/80 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center transition-all duration-200 shadow-sm"
+                        >
+                          <X size={12} />
+                        </button>
                       </div>
                     ))}
                     <button 
@@ -493,9 +496,9 @@ const ChatPage = () => {
                           ...editingAtv,
                           imagens: editingAtv.imagens.filter((_: any, i: number) => i !== idx)
                         })}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm"
+                        className="absolute top-1 right-1 bg-black/30 hover:bg-red-500/80 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center transition-all duration-200 shadow-sm"
                       >
-                        <Trash size={10} />
+                        <X size={12} />
                       </button>
                     </div>
                   ))}
@@ -562,6 +565,36 @@ const ChatPage = () => {
               <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">
                 <button onClick={() => setEditingAtv(null)} className="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancelar</button>
                 <button onClick={handleUpdate} className="flex-1 py-2.5 text-sm font-medium bg-whatsapp-teal text-white rounded-xl shadow-lg shadow-whatsapp-teal/20 hover:bg-whatsapp-teal-dark transition-colors">Salvar Alterações</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Modal: Confirm Delete */}
+        {deletingId && (
+          <div className="absolute inset-0 bg-black/60 z-[70] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-xs overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 bg-red-50 mx-auto rounded-full flex items-center justify-center mb-4 text-red-500">
+                  <Trash size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Apagar Registro?</h3>
+                <p className="text-sm text-gray-500">
+                  Esta ação não pode ser desfeita. O registro de atividade será removido permanentemente.
+                </p>
+              </div>
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">
+                <button 
+                  onClick={() => setDeletingId(null)} 
+                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => handleDelete(deletingId)} 
+                  className="flex-1 py-2.5 text-sm font-medium bg-red-500 text-white rounded-xl shadow-lg shadow-red-500/20 hover:bg-red-600 transition-colors"
+                >
+                  Confirmar
+                </button>
               </div>
             </div>
           </div>
