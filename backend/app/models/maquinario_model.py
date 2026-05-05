@@ -1,7 +1,4 @@
-# Importa o objeto 'db' que foi inicializado em app/__init__.py
-from app import db 
-
-from .cultura_model import Cultura
+from app import db
 
 class Maquinario(db.Model):
     """
@@ -16,9 +13,6 @@ class Maquinario(db.Model):
     data_aquisicao = db.Column(db.Date)
     valor_hora = db.Column(db.Numeric(10, 2))
     consumo_medio = db.Column(db.Numeric(10, 2))
-    
-    id_cultura_fk = db.Column(db.Integer, db.ForeignKey('cultura.id_cultura'))
-    cultura = db.relationship('Cultura', backref='maquinarios') 
 
     def to_dict(self):
         return {
@@ -26,8 +20,7 @@ class Maquinario(db.Model):
             'tipo': self.tipo,
             'modelo': self.modelo,
             'valor_hora': float(self.valor_hora) if self.valor_hora else 0,
-            'consumo_medio': float(self.consumo_medio) if self.consumo_medio else 0,
-            'id_cultura_fk': self.id_cultura_fk
+            'consumo_medio': float(self.consumo_medio) if self.consumo_medio else 0
         }
 
     def __repr__(self):

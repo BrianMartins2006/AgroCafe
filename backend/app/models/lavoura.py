@@ -7,6 +7,9 @@ class Lavoura(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     cultura = db.Column(db.String(50), nullable=False)
     foto_perfil = db.Column(db.String(255), nullable=True)
+    area_hectares = db.Column(db.Float, nullable=True)
+    localizacao = db.Column(db.String(255), nullable=True)
+    data_inicio = db.Column(db.Date, nullable=True)
     is_pinned = db.Column(db.Boolean, default=False)
     id_usuario_fk = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'), nullable=True)
     
@@ -26,6 +29,9 @@ class Lavoura(db.Model):
             'nome': self.nome,
             'cultura': self.cultura,
             'foto_perfil': self.foto_perfil,
+            'area_hectares': self.area_hectares,
+            'localizacao': self.localizacao,
+            'data_inicio': self.data_inicio.isoformat() if self.data_inicio else None,
             'is_pinned': self.is_pinned,
             'ultima_atividade_date': self.ultima_atividade_date.isoformat() if self.ultima_atividade_date else None,
             'id_usuario_fk': self.id_usuario_fk

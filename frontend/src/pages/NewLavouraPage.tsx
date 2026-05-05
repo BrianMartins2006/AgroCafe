@@ -8,6 +8,9 @@ const NewLavouraPage = () => {
   const isEdit = !!id;
   const [nome, setNome] = useState('');
   const [cultura, setCultura] = useState('Café');
+  const [area, setArea] = useState('');
+  const [localizacao, setLocalizacao] = useState('');
+  const [dataInicio, setDataInicio] = useState(new Date().toLocaleDateString('en-CA'));
   const [fotoPerfil, setFotoPerfil] = useState<string | null>(null);
   const [imgFile, setImgFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,6 +26,9 @@ const NewLavouraPage = () => {
             setNome(lavoura.nome);
             setCultura(lavoura.cultura);
             setFotoPerfil(lavoura.foto_perfil);
+            if (lavoura.area_hectares) setArea(lavoura.area_hectares.toString());
+            if (lavoura.localizacao) setLocalizacao(lavoura.localizacao);
+            if (lavoura.data_inicio) setDataInicio(lavoura.data_inicio);
           }
         });
     }
@@ -66,6 +72,9 @@ const NewLavouraPage = () => {
           nome,
           cultura,
           foto_perfil: finalFotoPerfil || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=100&q=80",
+          area_hectares: area ? parseFloat(area) : null,
+          localizacao,
+          data_inicio: dataInicio,
           id_usuario_fk: null
         }),
       });
@@ -137,6 +146,47 @@ const NewLavouraPage = () => {
               ))}
             </div>
           </div>
+          
+          <div className="relative">
+            <label className="block text-xs font-bold text-whatsapp-teal mb-2 uppercase tracking-widest">
+              Localização
+            </label>
+            <input
+              type="text"
+              value={localizacao}
+              onChange={(e) => setLocalizacao(e.target.value)}
+              placeholder="Ex: Fazenda Bela Vista - Área Sul"
+              className="w-full p-0 py-2 border-b-2 border-gray-100 focus:border-whatsapp-teal outline-none text-md font-medium transition-all bg-transparent placeholder:text-gray-300"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative">
+              <label className="block text-xs font-bold text-whatsapp-teal mb-2 uppercase tracking-widest">
+                Área (Hectares)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                placeholder="Ex: 12.5"
+                className="w-full p-0 py-2 border-b-2 border-gray-100 focus:border-whatsapp-teal outline-none text-md font-medium transition-all bg-transparent placeholder:text-gray-300"
+              />
+            </div>
+            
+            <div className="relative">
+              <label className="block text-xs font-bold text-whatsapp-teal mb-2 uppercase tracking-widest">
+                Data de Início
+              </label>
+              <input
+                type="date"
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+                className="w-full p-0 py-2 border-b-2 border-gray-100 focus:border-whatsapp-teal outline-none text-md font-medium transition-all bg-transparent text-gray-700"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="pt-8 text-center">
@@ -149,17 +199,19 @@ const NewLavouraPage = () => {
       </div>
 
       {/* Floating Action Button */}
-      <button 
-        onClick={handleSave}
-        disabled={!nome.trim() || loading}
-        className={`fixed bottom-8 right-8 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all ${
-          nome.trim() && !loading 
-          ? 'bg-whatsapp-green text-white active:scale-90 hover:shadow-whatsapp-green/40 hover:shadow-2xl' 
-          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-        }`}
-      >
-        <Check size={32} className={loading ? 'animate-spin' : ''} />
-      </button>
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-md flex justify-end px-6 z-50 pointer-events-none">
+        <button 
+          onClick={handleSave}
+          disabled={!nome.trim() || loading}
+          className={`w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all pointer-events-auto hover:-translate-y-1 ${
+            nome.trim() && !loading 
+            ? 'bg-whatsapp-green text-white active:scale-90 hover:shadow-whatsapp-green/40 hover:shadow-2xl' 
+            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          <Check size={32} className={loading ? 'animate-spin' : ''} />
+        </button>
+      </div>
     </Layout>
   );
 };

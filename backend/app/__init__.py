@@ -30,27 +30,7 @@ def create_app(config_class=Config):
     from app.routes.api import routes as api_routes
     app.register_blueprint(api_routes.api, url_prefix='/api/v1')
 
-    from app.routes.cultura_routes import cultura_bp
-    app.register_blueprint(cultura_bp)
-    
-    from app.routes.funcionario_routes import funcionario_bp
-    app.register_blueprint(funcionario_bp)
-    
-    from app.routes.maquinario_routes import maquinario_bp
-    app.register_blueprint(maquinario_bp)
-    
-    from app.routes.cultivo_routes import cultivo_bp
-    app.register_blueprint(cultivo_bp)
-    
-    from app.routes.atividade_funcionario_routes import atividade_funcionario_bp
-    app.register_blueprint(atividade_funcionario_bp)
-
-   
     main_bp = Blueprint('main', __name__)
-
-    from app.routes.dashboard_routes import dashboard_bp
-    app.register_blueprint(dashboard_bp)
-
     app.register_blueprint(main_bp)
 
     return app

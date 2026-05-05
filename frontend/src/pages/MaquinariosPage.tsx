@@ -4,6 +4,7 @@ import {
   Settings, DollarSign, Zap, Search, X, Check 
 } from 'lucide-react';
 import Layout from '../components/Layout';
+import toast from 'react-hot-toast';
 
 interface Maquinario {
   id_maquina: number;
@@ -60,21 +61,49 @@ const MaquinariosPage = () => {
         setIsModalOpen(false);
         setEditingMaq(null);
         setForm({ tipo: '', modelo: '', valor_hora: '', consumo_medio: '' });
+        toast.success(editingMaq ? "Máquina atualizada!" : "Máquina cadastrada!");
         loadMaquinarios();
+      } else {
+        toast.error("Erro ao salvar máquina.");
       }
     } catch (err) {
       console.error("Erro ao salvar maquinário:", err);
+      toast.error("Erro de conexão.");
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Deseja realmente excluir este maquinário?")) return;
-    try {
-      const res = await fetch(`/api/v1/maquinarios/${id}`, { method: 'DELETE' });
-      if (res.ok) loadMaquinarios();
-    } catch (err) {
-      console.error("Erro ao excluir maquinário:", err);
-    }
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <span className="font-bold">Excluir este maquinário?</span>
+        <div className="flex gap-2">
+          <button 
+            className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs"
+            onClick={async () => {
+              toast.dismiss(t.id);
+              try {
+                const res = await fetch(`/api/v1/maquinarios/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                  loadMaquinarios();
+                  toast.success("Excluído com sucesso");
+                }
+              } catch (err) {
+                console.error("Erro ao excluir:", err);
+                toast.error("Erro ao excluir.");
+              }
+            }}
+          >
+            Sim, Excluir
+          </button>
+          <button 
+            className="bg-gray-100 px-3 py-1.5 rounded-lg text-xs"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    ), { duration: 5000 });
   };
 
   const openEdit = (maq: Maquinario) => {

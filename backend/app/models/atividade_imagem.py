@@ -18,3 +18,23 @@ class AtividadeImagem(db.Model):
 
     def __repr__(self):
         return f'<AtividadeImagem {self.id}>'
+
+from sqlalchemy import event
+import os
+
+@event.listens_for(AtividadeImagem, 'after_delete')
+def receive_after_delete(mapper, connection, target):
+    # foto_url is like "/static/uploads/atividades/filename.jpg"
+    if target.foto_url:
+        # Get filename
+        filename = target.foto_url.split('/')[-1]
+        
+        # Build absolute path
+        from flask import current_app
+        if current_app:
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    print(f"Erro ao deletar imagem física: {e}")

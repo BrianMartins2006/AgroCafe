@@ -64,9 +64,13 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <Layout title="Dashboard">
-        <div className="flex flex-col items-center justify-center h-full p-8 space-y-4">
-          <div className="w-12 h-12 border-4 border-whatsapp-teal border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Calculando safras...</p>
+        <div className="p-4 space-y-6 pb-24">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-100 animate-pulse h-32 rounded-[2rem]"></div>
+            <div className="bg-gray-100 animate-pulse h-32 rounded-[2rem]"></div>
+          </div>
+          <div className="bg-gray-100 animate-pulse h-64 rounded-[2.5rem]"></div>
+          <div className="bg-gray-100 animate-pulse h-64 rounded-[2.5rem]"></div>
         </div>
       </Layout>
     );

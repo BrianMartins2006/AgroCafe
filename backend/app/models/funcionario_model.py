@@ -1,5 +1,4 @@
-from app import db 
-from .cultura_model import Cultura
+from app import db
 
 class Funcionario(db.Model):
     """
@@ -13,8 +12,6 @@ class Funcionario(db.Model):
     cargo = db.Column(db.String(50))
     salario_hora = db.Column(db.Numeric(10, 2))
     contato = db.Column(db.String(100))
-    id_cultura_fk = db.Column(db.Integer, db.ForeignKey('cultura.id_cultura'))
-    cultura = db.relationship('Cultura', backref='funcionarios') 
 
     def to_dict(self):
         return {
@@ -22,8 +19,7 @@ class Funcionario(db.Model):
             'nome': self.nome,
             'cargo': self.cargo,
             'salario_hora': float(self.salario_hora) if self.salario_hora else 0,
-            'contato': self.contato,
-            'id_cultura_fk': self.id_cultura_fk
+            'contato': self.contato
         }
 
     def __repr__(self):

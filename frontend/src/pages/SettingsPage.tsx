@@ -6,6 +6,7 @@ import {
   Sprout, Wind, Zap, Droplets, Sun, Hammer
 } from 'lucide-react';
 import Layout from '../components/Layout';
+import toast from 'react-hot-toast';
 
 interface UserProfile {
   id_usuario: number;
@@ -97,23 +98,55 @@ const SettingsPage = () => {
 
       if (res.ok) {
         setShowModal(false);
+        toast.success(editingId ? "Categoria atualizada!" : "Categoria salva!");
         loadData();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.erro || "Erro ao salvar categoria");
       }
     } catch (err) {
       console.error("Erro ao salvar:", err);
+      toast.error("Erro ao comunicar com o servidor");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Excluir esta categoria? Isso pode afetar os registros antigos.")) return;
-    try {
-      const res = await fetch(`/api/v1/tipos-atividade/${id}`, { method: 'DELETE' });
-      if (res.ok) loadData();
-    } catch (err) {
-      console.error("Erro ao deletar:", err);
-    }
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <span className="font-bold">Excluir esta categoria?</span>
+        <div className="flex gap-2">
+          <button 
+            className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs"
+            onClick={async () => {
+              toast.dismiss(t.id);
+              try {
+                const res = await fetch(`/api/v1/tipos-atividade/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                  loadData();
+                  toast.success("Excluída com sucesso");
+                } else {
+                  const data = await res.json();
+                  toast.error(data.erro || "Erro ao excluir categoria.");
+                }
+              } catch (err) {
+                console.error("Erro ao deletar:", err);
+                toast.error("Erro ao excluir categoria.");
+              }
+            }}
+          >
+            Sim, Excluir
+          </button>
+          <button 
+            className="bg-gray-100 px-3 py-1.5 rounded-lg text-xs"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    ), { duration: 5000 });
   };
 
   // Função para renderizar o ícone correto

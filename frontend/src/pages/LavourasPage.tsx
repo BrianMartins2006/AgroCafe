@@ -135,8 +135,16 @@ const LavourasPage = () => {
         )}
 
         {loading ? (
-          <div className="p-10 text-center text-gray-500 italic font-medium">
-            Carregando seus chats...
+          <div className="w-full">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center p-4 border-b border-gray-100 animate-pulse">
+                <div className="w-14 h-14 rounded-full bg-gray-200 flex-shrink-0"></div>
+                <div className="ml-4 flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                  <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredLavouras.length === 0 ? (
           <div className="p-10 text-center text-gray-500">
@@ -202,12 +210,14 @@ const LavourasPage = () => {
       </div>
 
       {/* Floating Action Button */}
-      <button 
-        onClick={() => navigate('/nova-lavoura')}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-whatsapp-green text-white rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-90 z-50 hover:shadow-whatsapp-green/40"
-      >
-        <MessageSquarePlus size={32} />
-      </button>
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md flex justify-end px-6 z-50 pointer-events-none">
+        <button 
+          onClick={() => navigate('/nova-lavoura')}
+          className="w-16 h-16 bg-whatsapp-green text-white rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-90 pointer-events-auto hover:shadow-whatsapp-green/40 hover:-translate-y-1"
+        >
+          <MessageSquarePlus size={32} />
+        </button>
+      </div>
 
       {/* Options Modal */}
       {selectedLavoura && !showDeleteConfirm && (

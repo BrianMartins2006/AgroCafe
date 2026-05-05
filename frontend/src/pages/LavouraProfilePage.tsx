@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Calendar, MapPin, Sprout, Image as ImageIcon, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Edit, Calendar, MapPin, Sprout, Image as ImageIcon, ChevronRight, X } from 'lucide-react';
 import Layout from '../components/Layout';
 
 interface Lavoura {
@@ -8,6 +8,9 @@ interface Lavoura {
   nome: string;
   cultura: string;
   foto_perfil: string;
+  localizacao?: string;
+  area_hectares?: number;
+  data_inicio?: string;
 }
 
 interface MediaItem {
@@ -23,6 +26,7 @@ const LavouraProfilePage = () => {
   const [lavoura, setLavoura] = useState<Lavoura | null>(null);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   useEffect(() => {
     // Buscar detalhes da lavoura
@@ -49,7 +53,8 @@ const LavouraProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] flex flex-col">
+    <div className="flex flex-col h-screen bg-[#f0f2f5] max-w-md mx-auto relative overflow-hidden font-sans">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
       {/* Header / Cover */}
       <div className="relative bg-white shadow-sm">
         <div className="absolute top-4 left-4 z-10">
@@ -74,12 +79,6 @@ const LavouraProfilePage = () => {
               <Sprout size={18} /> {lavoura?.cultura}
             </p>
           </div>
-          <button 
-            onClick={() => navigate(`/editar-lavoura/${id}`)}
-            className="absolute bottom-6 right-6 p-3 bg-whatsapp-teal text-white rounded-full shadow-lg active:scale-90 transition-all"
-          >
-            <Edit size={20} />
-          </button>
         </div>
       </div>
 
@@ -96,7 +95,10 @@ const LavouraProfilePage = () => {
             </div>
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase">Localização / Área</p>
-              <p className="text-gray-800 font-medium">Área Central - 12.5 hectares</p>
+              <p className="text-gray-800 font-medium">
+                {lavoura?.localizacao || "Não informada"} 
+                {lavoura?.area_hectares ? ` - ${lavoura.area_hectares} hectares` : ''}
+              </p>
             </div>
           </div>
 
@@ -106,7 +108,11 @@ const LavouraProfilePage = () => {
             </div>
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase">Data de Início</p>
-              <p className="text-gray-800 font-medium">20 de Outubro de 2023</p>
+              <p className="text-gray-800 font-medium">
+                {lavoura?.data_inicio 
+                  ? new Date(lavoura.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) 
+                  : "Não informada"}
+              </p>
             </div>
           </div>
         </div>
@@ -130,7 +136,7 @@ const LavouraProfilePage = () => {
               {media.map((item) => (
                 <div 
                   key={item.id} 
-                  onClick={() => window.open(item.foto_url, '_blank')}
+                  onClick={() => setLightboxImage(item.foto_url)}
                   className="aspect-square rounded-lg overflow-hidden border border-gray-50 cursor-pointer hover:opacity-80 transition-opacity relative group"
                 >
                   <img 
@@ -149,8 +155,11 @@ const LavouraProfilePage = () => {
           )}
         </div>
 
-        {/* Activity Summary (Placeholder) */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors">
+        {/* Activity Summary */}
+        <div 
+          onClick={() => navigate('/atividades')}
+          className="bg-white rounded-2xl p-6 shadow-sm flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+        >
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
               <ImageIcon size={20} />
@@ -163,7 +172,26 @@ const LavouraProfilePage = () => {
           <ChevronRight size={20} className="text-gray-300" />
         </div>
 
+        </div>
       </div>
+      
+      {/* Floating Action Button */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-md flex justify-end px-6 z-50 pointer-events-none">
+        <button 
+          onClick={() => navigate(`/editar-lavoura/${id}`)}
+          className="w-16 h-16 bg-whatsapp-green text-white rounded-full shadow-2xl flex items-center justify-center transition-all pointer-events-auto hover:-translate-y-1 hover:shadow-whatsapp-green/40 hover:shadow-2xl"
+        >
+          <Edit size={28} />
+        </button>
+      </div>
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center animate-in fade-in duration-200 p-2" onClick={() => setLightboxImage(null)}>
+          <button className="absolute top-6 right-6 text-white p-2 bg-black/50 rounded-full hover:bg-white/20 transition-all z-[210]"><X size={24} /></button>
+          <img src={lightboxImage} className="max-w-full max-h-full object-contain select-none shadow-2xl rounded-lg animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
 };

@@ -56,6 +56,9 @@ def create_lavoura():
         nome=data.get('nome'),
         cultura=data.get('cultura'),
         foto_perfil=data.get('foto_perfil') or "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=100&q=80",
+        area_hectares=data.get('area_hectares'),
+        localizacao=data.get('localizacao'),
+        data_inicio=data.get('data_inicio'),
         id_usuario_fk=data.get('id_usuario_fk')
     )
     db.session.add(nova_lavoura)
@@ -71,6 +74,12 @@ def handle_lavoura_id(id):
         lavoura.nome = data.get('nome', lavoura.nome)
         lavoura.cultura = data.get('cultura', lavoura.cultura)
         lavoura.foto_perfil = data.get('foto_perfil', lavoura.foto_perfil)
+        if 'area_hectares' in data:
+            lavoura.area_hectares = data.get('area_hectares')
+        if 'localizacao' in data:
+            lavoura.localizacao = data.get('localizacao')
+        if 'data_inicio' in data:
+            lavoura.data_inicio = data.get('data_inicio')
         db.session.commit()
         return jsonify(lavoura.to_dict())
     
@@ -177,8 +186,16 @@ def update_atividade(id):
     
     if data.get('data'):
         try:
-            dt_str = data.get('data').replace('Z', '')
-            atividade.data = datetime.fromisoformat(dt_str)
+            # Lógica de Data e Hora Inteligente para Update
+            if len(data.get('data')) <= 10:
+                data_fornecida = datetime.fromisoformat(data.get('data')).date()
+                if data_fornecida == datetime.now().date():
+                    atividade.data = datetime.now()
+                else:
+                    atividade.data = datetime.combine(data_fornecida, datetime.min.time().replace(hour=12))
+            else:
+                dt_str = data.get('data').replace('Z', '')
+                atividade.data = datetime.fromisoformat(dt_str)
         except Exception as e:
             print(f"Erro ao converter data na atualização: {e}")
 
@@ -262,6 +279,11 @@ def handle_tipo_atividade(id):
         return jsonify(tipo.to_dict())
     
     if request.method == 'DELETE':
+        # Check if any activities are using this type
+        from app.models.atividade import Atividade
+        if Atividade.query.filter_by(id_tipo_atividade_fk=tipo.id).first():
+            return jsonify({"erro": "Não é possível excluir esta categoria pois ela possui atividades vinculadas."}), 400
+            
         db.session.delete(tipo)
         db.session.commit()
         return jsonify({"message": "Tipo de atividade excluído"}), 200

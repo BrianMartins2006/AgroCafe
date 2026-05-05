@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import LavourasPage from './pages/LavourasPage';
 import ChatPage from './pages/ChatPage';
 import NewLavouraPage from './pages/NewLavouraPage';
@@ -13,6 +14,14 @@ import DashboardPage from './pages/DashboardPage';
 function App() {
   return (
     <BrowserRouter>
+      <Toaster 
+        position="top-center" 
+        toastOptions={{ 
+          className: 'text-sm font-bold',
+          duration: 3000,
+          style: { borderRadius: '20px', padding: '16px' }
+        }} 
+      />
       <Routes>
         <Route path="/" element={<LavourasPage />} />
         <Route path="/chat/:id" element={<ChatPage />} />
