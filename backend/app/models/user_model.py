@@ -17,6 +17,7 @@ class Usuario(db.Model, UserMixin):
     email = db.Column(db.String(100), unique=True, nullable=False)
     senha_hash = db.Column(db.String(255), nullable=False)
     ativo = db.Column(db.Boolean, default=True)
+    foto_url = db.Column(db.String(255))
     
     permissoes = db.relationship(
         'Permissao', secondary=usuario_permissao, 
@@ -41,6 +42,7 @@ class Usuario(db.Model, UserMixin):
             'nome': self.nome,
             'email': self.email,
             'ativo': self.ativo,
+            'foto_url': self.foto_url,
         }
         if include_permissoes:
             data['permissoes'] = [p.nome for p in self.permissoes]

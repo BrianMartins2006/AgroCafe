@@ -34,6 +34,7 @@ def update_perfil():
     data = request.json
     user.nome = data.get('nome', user.nome)
     user.email = data.get('email', user.email)
+    user.foto_url = data.get('foto_url', user.foto_url)
     
     if data.get('senha'):
         user.set_password(data.get('senha'))

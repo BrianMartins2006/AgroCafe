@@ -1,19 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { Send, Image as ImageIcon, User, Calendar, Edit, Trash, Sprout, Truck, Wind, Search, X } from 'lucide-react';
-
-const CategoryIcon = ({ name, size = 14 }: { name: string; size?: number }) => {
-  const icons: Record<string, any> = {
-    Sprouts: Sprout,
-    Truck: Truck,
-    Wind: Wind,
-    Search: Search
-  };
-  const IconComponent = icons[name] || Search;
-  return <IconComponent size={size} />;
-};
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  Send, Image as ImageIcon, Plus, MoreVertical, Search, 
+  ArrowLeft, X, Calendar, User, MessageSquare, Trash2, 
+  Edit, Check, Camera, Filter, ChevronRight, Briefcase, ChevronDown
+} from 'lucide-react';
 import Layout from '../components/Layout';
 
+// Tipagem para as atividades
 interface TipoAtividade {
   id: number;
   nome: string;
@@ -23,6 +17,7 @@ interface TipoAtividade {
 
 interface Atividade {
   id: number;
+  id_lavoura: number;
   tipo: TipoAtividade;
   data: string;
   descricao: string;
@@ -34,12 +29,16 @@ interface Lavoura {
   id: number;
   nome: string;
   cultura: string;
+  foto_perfil?: string;
 }
 
 const ChatPage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [tipos, setTipos] = useState<TipoAtividade[]>([]);
+  const [funcionarios, setFuncionarios] = useState<any[]>([]);
   const [lavoura, setLavoura] = useState<Lavoura | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -52,6 +51,8 @@ const ChatPage = () => {
   const [showNewModal, setShowNewModal] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0); // 0 = Geral
+  const [showResponsavelDropdown, setShowResponsavelDropdown] = useState(false);
+  const [showEditResponsavelDropdown, setShowEditResponsavelDropdown] = useState(false);
   
   // New Activity Form State
   const [newAtvForm, setNewAtvForm] = useState({
@@ -67,11 +68,25 @@ const ChatPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const editDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fecha dropdowns ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowResponsavelDropdown(false);
+      }
+      if (editDropdownRef.current && !editDropdownRef.current.contains(event.target as Node)) {
+        setShowEditResponsavelDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -98,6 +113,12 @@ const ChatPage = () => {
           setNewAtvForm(prev => ({ ...prev, id_tipo_atividade: data[0].id }));
         }
       });
+
+    // Buscar funcionários
+    fetch('/api/v1/funcionarios')
+      .then(res => res.json())
+      .then(data => setFuncionarios(data))
+      .catch(err => console.error("Erro ao buscar funcionários:", err));
 
     loadAtividades();
   }, [id]);
@@ -149,23 +170,17 @@ const ChatPage = () => {
   };
 
   const handleCreateActivity = async () => {
-    if (!newAtvForm.descricao.trim() && newAtvForm.fotos.length === 0) return;
-    if (!newAtvForm.id_tipo_atividade || sending) return;
-
-    console.log("Criando atividade com form:", newAtvForm);
+    if (!newAtvForm.descricao.trim()) return;
+    
     setSending(true);
     try {
       const response = await fetch('/api/v1/atividades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id_lavoura: Number(id),
-          id_tipo_atividade: newAtvForm.id_tipo_atividade,
-          descricao: newAtvForm.descricao,
-          responsavel: newAtvForm.responsavel,
-          data: newAtvForm.data,
-          fotos: newAtvForm.fotos
-        }),
+          ...newAtvForm,
+          id_lavoura: Number(id)
+        })
       });
 
       if (response.ok) {
@@ -176,32 +191,20 @@ const ChatPage = () => {
           data: new Date().toLocaleDateString('en-CA'),
           fotos: []
         });
-        setActiveTab(newAtvForm.id_tipo_atividade); // Trocar para a aba da nova atividade
         setShowNewModal(false);
         loadAtividades();
       }
     } catch (err) {
-      console.error("Erro ao enviar:", err);
+      console.error("Erro ao criar atividade:", err);
     } finally {
       setSending(false);
     }
   };
 
-  const handleDelete = async (atvId: number) => {
-    setDeletingId(null);
-    try {
-      const res = await fetch(`/api/v1/atividades/${atvId}`, { method: 'DELETE' });
-      if (res.ok) loadAtividades();
-    } catch (err) {
-      console.error("Erro ao deletar:", err);
-    }
-  };
-
   const handleUpdate = async () => {
     if (!editingAtv) return;
-    console.log("Atualizando atividade:", editingAtv);
     try {
-      const res = await fetch(`/api/v1/atividades/${editingAtv.id}`, {
+      const response = await fetch(`/api/v1/atividades/${editingAtv.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -210,132 +213,118 @@ const ChatPage = () => {
           responsavel: editingAtv.responsavel,
           data: editingAtv.data,
           fotos: editingAtv.imagens.map((img: any) => img.foto_url)
-        }),
+        })
       });
-      if (res.ok) {
+
+      if (response.ok) {
         setEditingAtv(null);
         loadAtividades();
       }
     } catch (err) {
-      console.error("Erro ao atualizar:", err);
+      console.error("Erro ao atualizar atividade:", err);
     }
   };
 
-  const filteredAtividades = atividades.filter(a => {
-    const matchesSearch = a.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          a.tipo.nome.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 0 || a.tipo.id === activeTab;
-    return matchesSearch && matchesTab;
-  });
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const handleDelete = async (idAtv: number) => {
+    try {
+      const response = await fetch(`/api/v1/atividades/${idAtv}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setDeletingId(null);
+        loadAtividades();
+      }
+    } catch (err) {
+      console.error("Erro ao deletar atividade:", err);
+    }
   };
+
+  const Sprout = ({ size }: { size: number }) => <Check size={size} />;
+  const Truck = ({ size }: { size: number }) => <Check size={size} />;
+  const Wind = ({ size }: { size: number }) => <Check size={size} />;
+
+  // Filtragem de atividades
+  const filteredAtividades = atividades.filter(atv => {
+    const matchesSearch = atv.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         atv.responsavel.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
 
   return (
     <Layout 
-      title={lavoura?.nome || 'Chat'} 
+      title={lavoura?.nome || "Carregando..."} 
       showBackButton={true}
+      onTitleClick={() => navigate(`/lavoura/${id}`)}
       onSearchClick={() => setShowSearch(!showSearch)}
-      onTitleClick={() => navigate(`/lavoura/${id}/perfil`)}
     >
-      <div className="flex flex-col h-full bg-whatsapp-chat-bg relative">
-        {/* Search Area */}
+      <div className="flex flex-col h-full bg-[#efeae2] relative overflow-hidden">
+        {/* Background Overlay (WhatsApp Pattern) */}
+        <div className="absolute inset-0 opacity-[0.06] pointer-events-none bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat"></div>
+
+        {/* Search Bar Overlay */}
         {showSearch && (
-          <div className="p-2 bg-white border-b border-gray-100 animate-in slide-in-from-top-2 duration-200">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Pesquisar no histórico..."
-              className="w-full px-4 py-1.5 bg-gray-100 rounded-full text-sm outline-none focus:ring-1 focus:ring-whatsapp-teal"
-              autoFocus
-            />
+          <div className="bg-white p-2 border-b border-gray-200 z-10 animate-in slide-in-from-top duration-200">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text"
+                autoFocus
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Pesquisar mensagens..."
+                className="w-full bg-gray-100 rounded-lg py-2 pl-10 pr-10 outline-none text-sm"
+              />
+              {searchTerm && (
+                <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <X size={18} />
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Tabs / Categories */}
-        <div className="bg-white border-b border-gray-100 overflow-x-auto no-scrollbar shadow-sm z-10">
-          <div className="flex p-2 flex-nowrap gap-2 min-w-max px-4">
-            <button
-              onClick={() => setActiveTab(0)}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                activeTab === 0 
-                ? 'bg-gray-800 text-white shadow-md scale-105' 
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-            >
-              🏠 Geral
-            </button>
-            {tipos.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                  activeTab === t.id 
-                  ? `${t.cor} text-white shadow-md scale-105` 
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}
-              >
-                <CategoryIcon name={t.icone} />
-                {t.nome}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Messages List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {loading && atividades.length === 0 ? (
-            <div className="text-center text-gray-500 py-10 italic">Carregando histórico...</div>
+        {/* Chat Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 relative no-scrollbar">
+          {loading ? (
+            <div className="flex justify-center items-center h-20 text-gray-500 italic text-sm">Sincronizando atividades...</div>
           ) : filteredAtividades.length === 0 ? (
-            <div className="text-center text-gray-500 py-10 italic">
-              {searchTerm ? 'Nenhum resultado encontrado.' : 'Nenhuma atividade registrada ainda.'}
+            <div className="flex flex-col items-center justify-center h-full opacity-40">
+              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                <MessageSquare size={32} />
+              </div>
+              <p className="text-sm font-medium">Nenhum registro encontrado</p>
             </div>
           ) : (
             filteredAtividades.map((atv) => (
-              <div key={atv.id} className="flex flex-col items-start max-w-[85%] animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="bg-white p-3 rounded-lg rounded-tl-none shadow-sm border border-gray-100 relative group">
-                  {/* Actions (Hover) */}
-                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => setEditingAtv(atv)} className="p-1 text-gray-400 hover:text-blue-500 rounded bg-white/80 shadow-sm">
-                      <Edit size={14} />
-                    </button>
-                    <button onClick={() => setDeletingId(atv.id)} className="p-1 text-gray-400 hover:text-red-500 rounded bg-white/80 shadow-sm">
-                      <Trash size={14} />
-                    </button>
+              <div key={atv.id} className="flex flex-col group animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="bg-white rounded-xl rounded-tl-none p-3 shadow-sm max-w-[85%] relative self-start border-l-4 border-l-whatsapp-teal">
+                  <div className="flex justify-between items-start gap-4 mb-1">
+                    <span className="text-[10px] font-black text-whatsapp-teal uppercase tracking-widest">{atv.responsavel}</span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setEditingAtv(atv)} className="p-1 text-gray-400 hover:text-whatsapp-teal"><Edit size={14} /></button>
+                      <button onClick={() => setDeletingId(atv.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                    </div>
                   </div>
 
-                  <div className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase mb-1 px-2 py-0.5 rounded-full text-white ${atv.tipo.cor}`}>
-                    <CategoryIcon name={atv.tipo.icone} size={10} />
-                    {atv.tipo.nome}
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-[10px] text-gray-400 mb-1">
-                    <User size={10} /> {atv.responsavel}
-                    <span className="mx-1">•</span>
-                    <Calendar size={10} /> {formatDate(atv.data)}
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-black text-white uppercase tracking-tighter ${atv.tipo.cor}`}>
+                      {atv.tipo.nome}
+                    </span>
                   </div>
 
-                  <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                    {atv.descricao}
-                  </p>
+                  <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{atv.descricao}</p>
 
                   {atv.imagens && atv.imagens.length > 0 && (
-                    <div className="grid grid-cols-2 gap-1 mt-2 rounded overflow-hidden">
+                    <div className={`mt-2 grid ${atv.imagens.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-1 rounded-lg overflow-hidden`}>
                       {atv.imagens.map((img) => (
-                        <img 
-                          key={img.id} 
-                          src={img.foto_url} 
-                          alt="Atividade" 
-                          className="w-full h-24 object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm border border-gray-50" 
-                          onClick={() => window.open(img.foto_url, '_blank')}
-                        />
+                        <img key={img.id} src={img.foto_url} className="w-full h-40 object-cover hover:opacity-90 cursor-pointer transition-all" />
                       ))}
                     </div>
                   )}
-                  <div className="absolute top-0 -left-2 w-0 h-0 border-t-[10px] border-t-white border-l-[10px] border-l-transparent"></div>
+
+                  <div className="text-[9px] text-gray-400 font-bold mt-1 text-right">
+                    {new Date(atv.data).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
                 </div>
               </div>
             ))
@@ -343,257 +332,384 @@ const ChatPage = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="bg-[#f0f2f5] p-3 flex items-center gap-2 border-t border-gray-200">
-          <input type="file" hidden ref={fileInputRef} onChange={(e) => handleFileUpload(e)} accept="image/*" />
+        {/* Input Area (Bottom) */}
+        <div className="bg-[#f0f2f5] p-3 flex items-center gap-2 border-t border-gray-200 z-20">
           <button 
-            disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="text-gray-500 p-2 hover:bg-gray-200 rounded-full transition-colors relative"
+            className="p-2 text-gray-500 hover:text-whatsapp-teal active:scale-90 transition-all"
           >
-            <ImageIcon size={24} className={uploading ? 'animate-pulse opacity-50' : ''} />
-            {uploading && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-4 h-4 border-2 border-whatsapp-teal border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
+            <Plus size={24} />
           </button>
-          <input
-            type="text"
-            value={newAtvForm.descricao}
-            onChange={(e) => setNewAtvForm({...newAtvForm, descricao: e.target.value})}
-            onKeyDown={(e) => e.key === 'Enter' && setShowNewModal(true)}
-            placeholder="Registrar nova atividade..."
-            className="flex-1 px-4 py-2 bg-white rounded-full text-sm text-gray-800 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-whatsapp-teal"
-          />
+          <input type="file" hidden ref={fileInputRef} onChange={handleFileUpload} accept="image/*" />
+          
+          <div className="flex-1 bg-white rounded-full px-4 py-2.5 flex items-center shadow-sm">
+            <input 
+              type="text" 
+              value={newAtvForm.descricao}
+              onChange={(e) => setNewAtvForm({...newAtvForm, descricao: e.target.value})}
+              onKeyDown={(e) => e.key === 'Enter' && setShowNewModal(true)}
+              placeholder="Registrar nova atividade..."
+              className="w-full bg-transparent outline-none text-sm"
+            />
+          </div>
+
           <button 
             onClick={() => setShowNewModal(true)}
-            disabled={!newAtvForm.descricao.trim()}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-              newAtvForm.descricao.trim() ? 'bg-whatsapp-teal text-white shadow-md active:scale-90' : 'bg-gray-300 text-white'
-            }`}
+            className="w-11 h-11 bg-whatsapp-teal text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all"
           >
             <Send size={20} />
           </button>
         </div>
 
-        {/* Modal: New Activity */}
+        {/* Modal: Confirm Registration (REFACTORED PREMIUM) */}
         {showNewModal && (
-          <div className="absolute inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-              <div className="bg-whatsapp-teal p-4 text-white flex justify-between items-center">
-                <h3 className="font-semibold">Confirmar Registro</h3>
-                <button onClick={() => setShowNewModal(false)} className="opacity-70 hover:opacity-100">×</button>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+              {/* Modal Header */}
+              <div className="bg-whatsapp-teal p-6 text-white flex justify-between items-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 opacity-10 rotate-12 -mr-4 -mt-4 pointer-events-none">
+                  <Briefcase size={100} />
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-xl font-black">Confirmar Registro</h3>
+                  <p className="text-xs text-white/70 font-bold uppercase tracking-widest mt-1 text-left">Sincronizando com a lavoura</p>
+                </div>
+                <button onClick={() => setShowNewModal(false)} className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all active:scale-90 relative z-20">
+                  <X size={20} />
+                </button>
               </div>
-              
-              <div className="p-4 space-y-4 overflow-y-auto">
-                {/* Images Preview */}
+
+              {/* Modal Content */}
+              <div className="p-8 space-y-6 overflow-y-auto no-scrollbar">
+                {/* Images Preview Section */}
                 {newAtvForm.fotos.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-2 pb-2">
                     {newAtvForm.fotos.map((url, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-100 shadow-sm">
+                      <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-gray-50 shadow-sm group">
                         <img src={url} className="w-full h-full object-cover" />
                         <button 
-                          onClick={() => setNewAtvForm({ ...newAtvForm, fotos: newAtvForm.fotos.filter((_, i) => i !== idx) })}
-                          className="absolute top-1 right-1 bg-black/30 hover:bg-red-500/80 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center transition-all duration-200 shadow-sm"
+                          onClick={() => setNewAtvForm({...newAtvForm, fotos: newAtvForm.fotos.filter((_, i) => i !== idx)})}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          <X size={12} />
+                          <X size={10} />
                         </button>
                       </div>
                     ))}
                     <button 
                       onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:border-whatsapp-teal hover:text-whatsapp-teal transition-colors"
+                      className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:border-whatsapp-teal hover:text-whatsapp-teal transition-all bg-gray-50/50"
                     >
-                      <ImageIcon size={20} />
+                      <Plus size={20} />
                     </button>
                   </div>
                 )}
 
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição</label>
-                  <textarea
-                    value={newAtvForm.descricao}
-                    onChange={(e) => setNewAtvForm({...newAtvForm, descricao: e.target.value})}
-                    placeholder="O que foi feito?"
-                    className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-1 focus:ring-whatsapp-teal outline-none"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
+                {/* Form Fields */}
+                <div className="space-y-5">
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data</label>
-                    <input
-                      type="date"
-                      value={newAtvForm.data}
-                      onChange={(e) => setNewAtvForm({...newAtvForm, data: e.target.value})}
-                      className="w-full mt-1 p-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none"
-                    />
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block ml-2 text-left">O que foi feito?</label>
+                    <div className="relative">
+                      <MessageSquare size={18} className="absolute left-4 top-4 text-gray-300" />
+                      <textarea
+                        value={newAtvForm.descricao}
+                        onChange={(e) => setNewAtvForm({...newAtvForm, descricao: e.target.value})}
+                        placeholder="Descreva a atividade..."
+                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-whatsapp-teal outline-none transition-all resize-none min-h-[100px]"
+                        rows={3}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Responsável</label>
-                    <input
-                      type="text"
-                      value={newAtvForm.responsavel}
-                      onChange={(e) => setNewAtvForm({...newAtvForm, responsavel: e.target.value})}
-                      className="w-full mt-1 p-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none"
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Categoria</label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {tipos.map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => setNewAtvForm({...newAtvForm, id_tipo_atividade: t.id})}
-                        className={`text-[10px] px-3 py-1 rounded-full border transition-all ${
-                          newAtvForm.id_tipo_atividade === t.id 
-                          ? `${t.cor} text-white border-transparent shadow-sm` 
-                          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-                        }`}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block ml-2 text-left">Data</label>
+                      <div className="relative">
+                        <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
+                        <input
+                          type="date"
+                          value={newAtvForm.data}
+                          onChange={(e) => setNewAtvForm({...newAtvForm, data: e.target.value})}
+                          className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-whatsapp-teal"
+                        />
+                      </div>
+                    </div>
+
+                    {/* CUSTOM PREMIUM SELECT (COMBOBOX) */}
+                    <div className="relative" ref={dropdownRef}>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block ml-2 text-left">Responsável</label>
+                      <button 
+                        type="button"
+                        onClick={() => setShowResponsavelDropdown(!showResponsavelDropdown)}
+                        className="w-full pl-12 pr-8 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold text-left focus:ring-2 focus:ring-whatsapp-teal transition-all flex items-center justify-between"
                       >
-                        {t.nome}
+                        <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
+                        <span className="truncate">{newAtvForm.responsavel}</span>
+                        <ChevronDown size={14} className={`text-gray-300 transition-transform ${showResponsavelDropdown ? 'rotate-180' : ''}`} />
                       </button>
-                    ))}
+
+                      {showResponsavelDropdown && (
+                        <div className="absolute bottom-full left-0 w-full mb-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[110] animate-in slide-in-from-bottom-2 duration-200">
+                          <div className="p-2 space-y-1 max-h-48 overflow-y-auto no-scrollbar">
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                setNewAtvForm({...newAtvForm, responsavel: 'Produtor'});
+                                setShowResponsavelDropdown(false);
+                              }}
+                              className={`w-full p-3 rounded-xl text-left text-xs font-bold flex items-center gap-3 transition-colors ${newAtvForm.responsavel === 'Produtor' ? 'bg-whatsapp-teal/10 text-whatsapp-teal' : 'hover:bg-gray-50 text-gray-600'}`}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-whatsapp-teal/5 flex items-center justify-center">
+                                <User size={16} />
+                              </div>
+                              Produtor (Eu)
+                            </button>
+                            {funcionarios.map(f => (
+                              <button 
+                                key={f.id_funcionario}
+                                type="button"
+                                onClick={() => {
+                                  setNewAtvForm({...newAtvForm, responsavel: f.nome});
+                                  setShowResponsavelDropdown(false);
+                                }}
+                                className={`w-full p-3 rounded-xl text-left text-xs font-bold flex items-center gap-3 transition-colors ${newAtvForm.responsavel === f.nome ? 'bg-whatsapp-teal/10 text-whatsapp-teal' : 'hover:bg-gray-50 text-gray-600'}`}
+                              >
+                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                                  <Briefcase size={16} />
+                                </div>
+                                {f.nome}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-2 text-center">Tipo de Atividade</label>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {tipos.map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setNewAtvForm({...newAtvForm, id_tipo_atividade: t.id})}
+                          className={`text-[10px] px-4 py-2 rounded-xl font-black uppercase tracking-wider border-2 transition-all active:scale-95 ${
+                            newAtvForm.id_tipo_atividade === t.id 
+                            ? `${t.cor} text-white border-transparent shadow-lg scale-105` 
+                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {t.nome}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">
-                <button onClick={() => setShowNewModal(false)} className="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancelar</button>
+              {/* Modal Actions */}
+              <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowNewModal(false)} 
+                  className="flex-1 py-4 text-sm font-black text-gray-400 hover:bg-gray-100 rounded-2xl transition-all"
+                >
+                  CANCELAR
+                </button>
                 <button 
                   onClick={handleCreateActivity} 
-                  disabled={sending}
-                  className="flex-1 py-2.5 text-sm font-medium bg-whatsapp-teal text-white rounded-xl shadow-lg shadow-whatsapp-teal/20 hover:bg-whatsapp-teal-dark transition-colors disabled:opacity-50"
+                  disabled={sending || !newAtvForm.descricao.trim()}
+                  className="flex-[2] py-4 bg-whatsapp-teal text-white font-black rounded-2xl shadow-xl shadow-whatsapp-teal/20 hover:bg-whatsapp-teal-dark active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {sending ? 'Salvando...' : 'Registrar'}
+                  {sending ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <><Check size={20} /> REGISTRAR AGORA</>
+                  )}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Modal: Edit Activity */}
+        {/* Modal: Edit Activity (REFACTORED PREMIUM) */}
         {editingAtv && (
-          <div className="absolute inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-              <div className="bg-whatsapp-teal p-4 text-white flex justify-between items-center">
-                <h3 className="font-semibold">Editar Atividade</h3>
-                <button onClick={() => setEditingAtv(null)} className="opacity-70 hover:opacity-100">×</button>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+              {/* Modal Header */}
+              <div className="bg-whatsapp-teal p-6 text-white flex justify-between items-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 opacity-10 rotate-12 -mr-4 -mt-4 pointer-events-none">
+                  <Edit size={100} />
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-xl font-black">Editar Atividade</h3>
+                  <p className="text-xs text-white/70 font-bold uppercase tracking-widest mt-1 text-left">Atualizando registro existente</p>
+                </div>
+                <button onClick={() => setEditingAtv(null)} className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all active:scale-90 relative z-20">
+                  <X size={20} />
+                </button>
               </div>
               
-              <div className="p-4 space-y-4 overflow-y-auto">
+              <div className="p-8 space-y-6 overflow-y-auto no-scrollbar">
                 {/* Images Preview & Management */}
                 <div className="grid grid-cols-3 gap-2">
                   {editingAtv.imagens.map((img: any, idx: number) => (
-                    <div key={img.id || idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-100 shadow-sm">
+                    <div key={img.id || idx} className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm group">
                       <img src={img.foto_url} className="w-full h-full object-cover" />
                       <button 
                         onClick={() => setEditingAtv({
                           ...editingAtv,
                           imagens: editingAtv.imagens.filter((_: any, i: number) => i !== idx)
                         })}
-                        className="absolute top-1 right-1 bg-black/30 hover:bg-red-500/80 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center transition-all duration-200 shadow-sm"
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <X size={12} />
+                        <X size={10} />
                       </button>
                     </div>
                   ))}
-                  <input type="file" hidden ref={editFileInputRef} onChange={(e) => handleFileUpload(e, true)} accept="image/*" />
                   <button 
                     onClick={() => editFileInputRef.current?.click()}
-                    className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:border-whatsapp-teal hover:text-whatsapp-teal transition-colors"
+                    className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:border-whatsapp-teal hover:text-whatsapp-teal transition-all bg-gray-50/50"
                   >
-                    <ImageIcon size={20} />
+                    <Plus size={20} />
                   </button>
+                  <input type="file" hidden ref={editFileInputRef} onChange={(e) => handleFileUpload(e, true)} accept="image/*" />
                 </div>
 
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição</label>
-                  <textarea
-                    value={editingAtv.descricao}
-                    onChange={(e) => setEditingAtv({...editingAtv, descricao: e.target.value})}
-                    className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-1 focus:ring-whatsapp-teal outline-none"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-5">
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data</label>
-                    <input
-                      type="date"
-                      value={editingAtv.data.split('T')[0]}
-                      onChange={(e) => setEditingAtv({...editingAtv, data: e.target.value})}
-                      className="w-full mt-1 p-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none"
-                    />
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-2 text-left">O que foi feito?</label>
+                    <div className="relative">
+                      <MessageSquare size={18} className="absolute left-4 top-4 text-gray-300" />
+                      <textarea
+                        value={editingAtv.descricao}
+                        onChange={(e) => setEditingAtv({...editingAtv, descricao: e.target.value})}
+                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-whatsapp-teal outline-none transition-all resize-none"
+                        rows={3}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Responsável</label>
-                    <input
-                      type="text"
-                      value={editingAtv.responsavel}
-                      onChange={(e) => setEditingAtv({...editingAtv, responsavel: e.target.value})}
-                      className="w-full mt-1 p-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none"
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Categoria</label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {tipos.map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => setEditingAtv({...editingAtv, tipo: t})}
-                        className={`text-[10px] px-3 py-1 rounded-full border transition-all ${
-                          editingAtv.tipo.id === t.id 
-                          ? `${t.cor} text-white border-transparent` 
-                          : 'bg-white text-gray-500 border-gray-200'
-                        }`}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-2 text-left">Data</label>
+                      <div className="relative">
+                        <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
+                        <input
+                          type="date"
+                          value={editingAtv.data.split('T')[0]}
+                          onChange={(e) => setEditingAtv({...editingAtv, data: e.target.value})}
+                          className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* CUSTOM EDIT DROPDOWN */}
+                    <div className="relative" ref={editDropdownRef}>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-2 text-left">Responsável</label>
+                      <button 
+                        type="button"
+                        onClick={() => setShowEditResponsavelDropdown(!showEditResponsavelDropdown)}
+                        className="w-full pl-12 pr-8 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold text-left flex items-center justify-between"
                       >
-                        {t.nome}
+                        <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
+                        <span className="truncate">{editingAtv.responsavel}</span>
+                        <ChevronDown size={14} className={`text-gray-300 transition-transform ${showEditResponsavelDropdown ? 'rotate-180' : ''}`} />
                       </button>
-                    ))}
+
+                      {showEditResponsavelDropdown && (
+                        <div className="absolute bottom-full left-0 w-full mb-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[110] animate-in slide-in-from-bottom-2 duration-200">
+                          <div className="p-2 space-y-1 max-h-48 overflow-y-auto no-scrollbar">
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                setEditingAtv({...editingAtv, responsavel: 'Produtor'});
+                                setShowEditResponsavelDropdown(false);
+                              }}
+                              className={`w-full p-3 rounded-xl text-left text-xs font-bold flex items-center gap-3 transition-colors ${editingAtv.responsavel === 'Produtor' ? 'bg-whatsapp-teal/10 text-whatsapp-teal' : 'hover:bg-gray-50 text-gray-600'}`}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-whatsapp-teal/5 flex items-center justify-center">
+                                <User size={16} />
+                              </div>
+                              Produtor (Eu)
+                            </button>
+                            {funcionarios.map(f => (
+                              <button 
+                                key={f.id_funcionario}
+                                type="button"
+                                onClick={() => {
+                                  setEditingAtv({...editingAtv, responsavel: f.nome});
+                                  setShowEditResponsavelDropdown(false);
+                                }}
+                                className={`w-full p-3 rounded-xl text-left text-xs font-bold flex items-center gap-3 transition-colors ${editingAtv.responsavel === f.nome ? 'bg-whatsapp-teal/10 text-whatsapp-teal' : 'hover:bg-gray-50 text-gray-600'}`}
+                              >
+                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                                  <Briefcase size={16} />
+                                </div>
+                                {f.nome}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block ml-2 text-center">Tipo de Atividade</label>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {tipos.map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setEditingAtv({...editingAtv, tipo: t})}
+                          className={`text-[10px] px-4 py-2 rounded-xl font-black uppercase tracking-wider border-2 transition-all active:scale-95 ${
+                            editingAtv.tipo.id === t.id 
+                            ? `${t.cor} text-white border-transparent shadow-lg scale-105` 
+                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {t.nome}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">
-                <button onClick={() => setEditingAtv(null)} className="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancelar</button>
-                <button onClick={handleUpdate} className="flex-1 py-2.5 text-sm font-medium bg-whatsapp-teal text-white rounded-xl shadow-lg shadow-whatsapp-teal/20 hover:bg-whatsapp-teal-dark transition-colors">Salvar Alterações</button>
+              <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                <button type="button" onClick={() => setEditingAtv(null)} className="flex-1 py-4 text-sm font-black text-gray-400 hover:bg-gray-100 rounded-2xl transition-all">CANCELAR</button>
+                <button type="button" onClick={handleUpdate} className="flex-[2] py-4 bg-whatsapp-teal text-white font-black rounded-2xl shadow-xl shadow-whatsapp-teal/20 active:scale-95 transition-all">SALVAR ALTERAÇÕES</button>
               </div>
             </div>
           </div>
         )}
+
         {/* Modal: Confirm Delete */}
         {deletingId && (
-          <div className="absolute inset-0 bg-black/60 z-[70] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-xs overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="p-6 text-center">
-                <div className="w-16 h-16 bg-red-50 mx-auto rounded-full flex items-center justify-center mb-4 text-red-500">
-                  <Trash size={32} />
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[2.5rem] w-full max-w-xs overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 bg-red-50 mx-auto rounded-full flex items-center justify-center mb-6 text-red-500">
+                  <Trash2 size={40} />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Apagar Registro?</h3>
-                <p className="text-sm text-gray-500">
-                  Esta ação não pode ser desfeita. O registro de atividade será removido permanentemente.
+                <h3 className="text-xl font-black text-gray-900 mb-2">Apagar Registro?</h3>
+                <p className="text-sm text-gray-400 font-medium leading-relaxed">
+                  Esta ação não pode ser desfeita. O registro será removido permanentemente.
                 </p>
               </div>
-              <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">
+              <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
                 <button 
                   onClick={() => setDeletingId(null)} 
-                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                  className="flex-1 py-4 text-sm font-black text-gray-400 hover:bg-gray-100 rounded-2xl"
                 >
-                  Cancelar
+                  NÃO
                 </button>
                 <button 
                   onClick={() => handleDelete(deletingId)} 
-                  className="flex-1 py-2.5 text-sm font-medium bg-red-500 text-white rounded-xl shadow-lg shadow-red-500/20 hover:bg-red-600 transition-colors"
+                  className="flex-1 py-4 bg-red-500 text-white font-black rounded-2xl shadow-lg shadow-red-500/20"
                 >
-                  Confirmar
+                  SIM, APAGAR
                 </button>
               </div>
             </div>

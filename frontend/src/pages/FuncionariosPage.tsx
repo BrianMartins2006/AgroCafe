@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Edit, Trash2, User, Phone, Briefcase, DollarSign, X } from 'lucide-react';
+import { 
+  ArrowLeft, Plus, Edit, Trash2, User, 
+  Briefcase, DollarSign, Phone, Search, X, Check 
+} from 'lucide-react';
 import Layout from '../components/Layout';
 
 interface Funcionario {
-  id: number;
+  id_funcionario: number;
   nome: string;
   cargo: string;
   salario_hora: number;
@@ -14,32 +17,37 @@ const FuncionariosPage = () => {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Funcionario | null>(null);
+  const [editingFunc, setEditingFunc] = useState<Funcionario | null>(null);
+  
   const [form, setForm] = useState({
     nome: '',
     cargo: '',
-    salario_hora: 0,
+    salario_hora: '',
     contato: ''
   });
 
-  const loadData = () => {
+  const loadFuncionarios = () => {
     setLoading(true);
     fetch('/api/v1/funcionarios')
       .then(res => res.json())
       .then(data => {
         setFuncionarios(data);
         setLoading(false);
+      })
+      .catch(err => {
+        console.error("Erro ao buscar funcionários:", err);
+        setLoading(false);
       });
   };
 
   useEffect(() => {
-    loadData();
+    loadFuncionarios();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const method = editing ? 'PUT' : 'POST';
-    const url = editing ? `/api/v1/funcionarios/${editing.id}` : '/api/v1/funcionarios';
+    const method = editingFunc ? 'PUT' : 'POST';
+    const url = editingFunc ? `/api/v1/funcionarios/${editingFunc.id_funcionario}` : '/api/v1/funcionarios';
 
     try {
       const res = await fetch(url, {
@@ -47,94 +55,245 @@ const FuncionariosPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       });
+
       if (res.ok) {
         setIsModalOpen(false);
-        setEditing(null);
-        setForm({ nome: '', cargo: '', salario_hora: 0, contato: '' });
-        loadData();
+        setEditingFunc(null);
+        setForm({ nome: '', cargo: '', salario_hora: '', contato: '' });
+        loadFuncionarios();
       }
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao salvar funcionário:", err);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Excluir funcionário?")) return;
-    await fetch(`/api/v1/funcionarios/${id}`, { method: 'DELETE' });
-    loadData();
+    if (!window.confirm("Deseja realmente excluir este funcionário?")) return;
+    try {
+      const res = await fetch(`/api/v1/funcionarios/${id}`, { method: 'DELETE' });
+      if (res.ok) loadFuncionarios();
+    } catch (err) {
+      console.error("Erro ao excluir funcionário:", err);
+    }
+  };
+
+  const openEdit = (func: Funcionario) => {
+    setEditingFunc(func);
+    setForm({ 
+      nome: func.nome, 
+      cargo: func.cargo, 
+      salario_hora: func.salario_hora.toString(), 
+      contato: func.contato 
+    });
+    setIsModalOpen(true);
   };
 
   return (
-    <Layout title="Funcionários" showBackButton={true}>
-      <div className="bg-[#f0f2f5] min-h-full p-4 space-y-4">
-        <div className="bg-white rounded-2xl p-6 shadow-sm flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-black text-gray-900">Equipe</h2>
-            <p className="text-sm text-gray-400">Gerencie quem trabalha nas lavouras.</p>
+    <Layout title="Equipe" showBackButton={true}>
+      <div className="bg-[#f0f2f5] min-h-full pb-24">
+        
+        {/* Header Section */}
+        <div className="bg-white p-6 border-b border-gray-100 shadow-sm mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-2xl font-black text-gray-900">Gerenciar Equipe</h2>
+            <button 
+              onClick={() => {
+                setEditingFunc(null);
+                setForm({ nome: '', cargo: '', salario_hora: '', contato: '' });
+                setIsModalOpen(true);
+              }}
+              className="p-3 bg-whatsapp-teal text-white rounded-2xl shadow-xl shadow-whatsapp-teal/20 active:scale-90 transition-all"
+            >
+              <Plus size={24} />
+            </button>
           </div>
-          <button 
-            onClick={() => { setEditing(null); setForm({ nome: '', cargo: '', salario_hora: 0, contato: '' }); setIsModalOpen(true); }}
-            className="p-3 bg-whatsapp-green text-white rounded-full shadow-lg active:scale-90 transition-all"
-          >
-            <Plus size={24} />
-          </button>
+          <p className="text-sm text-gray-400 font-medium">Cadastre e gerencie os trabalhadores da sua lavoura.</p>
         </div>
 
-        <div className="space-y-3">
+        {/* Search Bar */}
+        <div className="px-4 mb-6">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nome ou cargo..."
+              className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-whatsapp-teal transition-all text-gray-700 font-medium"
+            />
+          </div>
+        </div>
+
+        {/* List Section */}
+        <div className="px-4 space-y-4">
           {loading ? (
-            <div className="p-10 text-center text-gray-400 italic">Carregando...</div>
-          ) : funcionarios.map(f => (
-            <div key={f.id} className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
-                  <User size={24} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">{f.nome}</h3>
-                  <p className="text-xs text-gray-400 font-medium">{f.cargo}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => { setEditing(f); setForm(f); setIsModalOpen(true); }} className="p-2 text-gray-400 hover:text-whatsapp-teal"><Edit size={18} /></button>
-                <button onClick={() => handleDelete(f.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={18} /></button>
-              </div>
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="w-10 h-10 border-4 border-whatsapp-teal border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-gray-400 font-bold animate-pulse">Carregando equipe...</p>
             </div>
-          ))}
+          ) : funcionarios.length === 0 ? (
+            <div className="bg-white rounded-3xl p-12 text-center shadow-sm">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <User size={40} className="text-gray-200" />
+              </div>
+              <h3 className="text-lg font-black text-gray-900 mb-2">Nenhum funcionário</h3>
+              <p className="text-gray-400 text-sm mb-6">Comece adicionando seu primeiro trabalhador.</p>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="px-8 py-3 bg-gray-50 text-whatsapp-teal font-black rounded-xl hover:bg-whatsapp-teal hover:text-white transition-all"
+              >
+                Adicionar Agora
+              </button>
+            </div>
+          ) : (
+            funcionarios.map(func => (
+              <div key={func.id_funcionario} className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-50 group hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-4">
+                    <div className="w-16 h-16 bg-whatsapp-teal/5 text-whatsapp-teal rounded-2xl flex items-center justify-center shadow-inner">
+                      <User size={32} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-gray-900 leading-tight">{func.nome}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Briefcase size={14} className="text-gray-300" />
+                        <span className="text-sm font-bold text-gray-400">{func.cargo}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    <button 
+                      onClick={() => openEdit(func)}
+                      className="p-3 text-gray-400 hover:text-whatsapp-teal hover:bg-whatsapp-teal/5 rounded-2xl transition-all"
+                    >
+                      <Edit size={20} />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(func.id_funcionario)}
+                      className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center">
+                      <DollarSign size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Valor/Hora</p>
+                      <p className="font-bold text-gray-700">R$ {func.salario_hora.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                      <Phone size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Contato</p>
+                      <p className="font-bold text-gray-700">{func.contato || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
+        {/* Modal Overlay */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
               <div className="bg-whatsapp-teal p-6 text-white flex justify-between items-center">
-                <h3 className="font-bold">{editing ? 'Editar' : 'Novo'} Funcionário</h3>
-                <button onClick={() => setIsModalOpen(false)}><X size={24} /></button>
+                <h3 className="text-xl font-black">{editingFunc ? 'Editar Funcionário' : 'Novo Funcionário'}</h3>
+                <button onClick={() => setIsModalOpen(false)} className="active:scale-90 transition-all">
+                  <X size={24} />
+                </button>
               </div>
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <input 
-                  type="text" placeholder="Nome" required
-                  value={form.nome} onChange={e => setForm({...form, nome: e.target.value})}
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-whatsapp-teal"
-                />
-                <input 
-                  type="text" placeholder="Cargo" required
-                  value={form.cargo} onChange={e => setForm({...form, cargo: e.target.value})}
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-whatsapp-teal"
-                />
-                <input 
-                  type="number" placeholder="Salário/Hora" required
-                  value={form.salario_hora} onChange={e => setForm({...form, salario_hora: Number(e.target.value)})}
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-whatsapp-teal"
-                />
-                <input 
-                  type="text" placeholder="Contato"
-                  value={form.contato} onChange={e => setForm({...form, contato: e.target.value})}
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-whatsapp-teal"
-                />
-                <button type="submit" className="w-full py-4 bg-whatsapp-teal text-white font-bold rounded-2xl shadow-xl">Salvar</button>
+
+              <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-2">Nome Completo</label>
+                  <div className="relative">
+                    <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input 
+                      type="text" 
+                      required
+                      value={form.nome}
+                      onChange={e => setForm({...form, nome: e.target.value})}
+                      placeholder="Ex: João da Silva"
+                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-800 outline-none focus:ring-2 focus:ring-whatsapp-teal transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-2">Cargo / Função</label>
+                  <div className="relative">
+                    <Briefcase size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input 
+                      type="text" 
+                      required
+                      value={form.cargo}
+                      onChange={e => setForm({...form, cargo: e.target.value})}
+                      placeholder="Ex: Safrista, Tratorista..."
+                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-800 outline-none focus:ring-2 focus:ring-whatsapp-teal transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-2">Salário/Hora</label>
+                    <div className="relative">
+                      <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        required
+                        value={form.salario_hora}
+                        onChange={e => setForm({...form, salario_hora: e.target.value})}
+                        placeholder="0.00"
+                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-800 outline-none focus:ring-2 focus:ring-whatsapp-teal transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-2">Contato</label>
+                    <div className="relative">
+                      <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input 
+                        type="text" 
+                        value={form.contato}
+                        onChange={e => setForm({...form, contato: e.target.value})}
+                        placeholder="(00) 00000..."
+                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-800 outline-none focus:ring-2 focus:ring-whatsapp-teal transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 py-4 text-gray-400 font-black hover:bg-gray-50 rounded-2xl transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-2 py-4 bg-whatsapp-teal text-white font-black rounded-2xl shadow-xl shadow-whatsapp-teal/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Check size={20} />
+                    {editingFunc ? 'Salvar Alterações' : 'Cadastrar'}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
         )}
+
       </div>
     </Layout>
   );

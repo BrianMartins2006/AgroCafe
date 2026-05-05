@@ -16,5 +16,15 @@ class Funcionario(db.Model):
     id_cultura_fk = db.Column(db.Integer, db.ForeignKey('cultura.id_cultura'))
     cultura = db.relationship('Cultura', backref='funcionarios') 
 
+    def to_dict(self):
+        return {
+            'id_funcionario': self.id_funcionario,
+            'nome': self.nome,
+            'cargo': self.cargo,
+            'salario_hora': float(self.salario_hora) if self.salario_hora else 0,
+            'contato': self.contato,
+            'id_cultura_fk': self.id_cultura_fk
+        }
+
     def __repr__(self):
         return f"<Funcionario {self.id_funcionario}: {self.nome} - Cargo: {self.cargo}>"

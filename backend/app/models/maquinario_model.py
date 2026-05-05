@@ -20,5 +20,15 @@ class Maquinario(db.Model):
     id_cultura_fk = db.Column(db.Integer, db.ForeignKey('cultura.id_cultura'))
     cultura = db.relationship('Cultura', backref='maquinarios') 
 
+    def to_dict(self):
+        return {
+            'id_maquina': self.id_maquina,
+            'tipo': self.tipo,
+            'modelo': self.modelo,
+            'valor_hora': float(self.valor_hora) if self.valor_hora else 0,
+            'consumo_medio': float(self.consumo_medio) if self.consumo_medio else 0,
+            'id_cultura_fk': self.id_cultura_fk
+        }
+
     def __repr__(self):
         return f"<Maquinario {self.id_maquina}: {self.tipo} ({self.modelo})>"
