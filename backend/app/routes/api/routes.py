@@ -125,13 +125,22 @@ def get_global_feed():
 def create_atividade():
     data = request.json
     
-    # Converter string ISO para objeto datetime se fornecido
+    # Lógica de Data e Hora Inteligente
     dt_atividade = datetime.now()
     if data.get('data'):
         try:
-            # Lida com formatos ISO comuns
-            dt_str = data.get('data').replace('Z', '')
-            dt_atividade = datetime.fromisoformat(dt_str)
+            # Se vier apenas data (YYYY-MM-DD), tentamos manter a hora atual se for hoje
+            if len(data.get('data')) <= 10:
+                data_fornecida = datetime.fromisoformat(data.get('data')).date()
+                if data_fornecida == datetime.now().date():
+                    dt_atividade = datetime.now() # É hoje, usa hora atual
+                else:
+                    # É outro dia, define meio-dia como padrão em vez de meia-noite
+                    dt_atividade = datetime.combine(data_fornecida, datetime.min.time().replace(hour=12))
+            else:
+                # Se vier ISO completo, respeita
+                dt_str = data.get('data').replace('Z', '')
+                dt_atividade = datetime.fromisoformat(dt_str)
         except Exception as e:
             print(f"Erro ao converter data: {e}")
 

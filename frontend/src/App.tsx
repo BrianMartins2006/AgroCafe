@@ -8,6 +8,7 @@ import ActivitiesPage from './pages/ActivitiesPage';
 import FuncionariosPage from './pages/FuncionariosPage';
 import MaquinariosPage from './pages/MaquinariosPage';
 import ProfilePage from './pages/ProfilePage';
+import DashboardPage from './pages/DashboardPage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/perfil" element={<ProfilePage />} />
         <Route path="/nova-lavoura" element={<NewLavouraPage />} />
         <Route path="/editar-lavoura/:id" element={<NewLavouraPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
