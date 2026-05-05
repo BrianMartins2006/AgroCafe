@@ -340,7 +340,7 @@ const ChatPage = () => {
           >
             <Plus size={24} />
           </button>
-          <input type="file" hidden ref={fileInputRef} onChange={handleFileUpload} accept="image/*" />
+          <input type="file" hidden ref={fileInputRef} onChange={handleFileUpload} accept="image/*" capture="environment" />
           
           <div className="flex-1 bg-white rounded-full px-4 py-2.5 flex items-center shadow-sm">
             <input 

@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { Search, MoreVertical, ArrowLeft, Settings, User } from 'lucide-react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  ArrowLeft, Search, MessageCircle, Globe, 
+  TrendingUp, UserCircle, MessageSquare, LayoutGrid, BarChart2
+} from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
   title?: string;
-  showTabs?: boolean;
   showBackButton?: boolean;
   onSearchClick?: () => void;
   onTitleClick?: () => void;
@@ -13,116 +15,108 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, 
-  title = 'AgroCafé', 
-  showTabs = false, 
-  showBackButton = false,
+  title, 
+  showBackButton = false, 
   onSearchClick,
-  onTitleClick
+  onTitleClick 
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showMenu, setShowMenu] = useState(false);
 
-  const isActive = (path: string) => {
-    if (path === '/configuracoes') {
-      return location.pathname === '/configuracoes' || 
-             location.pathname === '/perfil' || 
-             location.pathname === '/funcionarios' || 
-             location.pathname === '/maquinarios';
-    }
-    return location.pathname === path;
-  };
+  const isChat = location.pathname.includes('/chat/');
+  
+  const navItems = [
+    { label: 'Conversas', icon: MessageSquare, path: '/' },
+    { label: 'Atividades', icon: LayoutGrid, path: '/atividades' },
+    { label: 'Custos', icon: BarChart2, path: '/dashboard' },
+    { label: 'Perfil', icon: UserCircle, path: '/configuracoes' },
+  ];
 
   return (
-    <div className="flex flex-col h-screen bg-white">
-      {/* Header */}
-      <header className="bg-whatsapp-teal text-white p-4 flex justify-between items-center shadow-md z-50">
+    <div className="flex flex-col h-screen bg-white max-w-md mx-auto relative overflow-hidden font-sans">
+      {/* Top Header (WhatsApp Style - Fiel) */}
+      <header className="bg-whatsapp-teal text-white px-4 py-4 shadow-md z-[70] flex items-center justify-between">
         <div className="flex items-center gap-3">
           {showBackButton && (
-            <ArrowLeft 
-              size={24} 
-              className="cursor-pointer opacity-80 hover:opacity-100 transition-all active:scale-90" 
-              onClick={() => navigate(-1)}
-            />
+            <button 
+              onClick={() => navigate(-1)} 
+              className="p-1 -ml-1 active:bg-white/20 rounded-full transition-all"
+            >
+              <ArrowLeft size={24} />
+            </button>
           )}
           <h1 
             onClick={onTitleClick}
-            className={`text-xl font-semibold tracking-tight ${onTitleClick ? 'cursor-pointer hover:opacity-80' : ''}`}
+            className={`text-xl font-medium tracking-tight ${onTitleClick ? 'cursor-pointer' : ''}`}
           >
-            {title}
+            {title || 'AgroCafé'}
           </h1>
         </div>
-        <div className="flex gap-4 relative">
-          <Search 
-            size={24} 
-            className="cursor-pointer opacity-80 hover:opacity-100 transition-all active:scale-90" 
-            onClick={onSearchClick}
-          />
-          <div className="relative">
-            <MoreVertical 
-              size={24} 
-              className="cursor-pointer opacity-80 hover:opacity-100 transition-all active:scale-90" 
-              onClick={() => setShowMenu(!showMenu)}
-            />
-            {showMenu && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl z-20 py-2 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-                  <button 
-                    onClick={() => { navigate('/configuracoes'); setShowMenu(false); }}
-                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                  >
-                    <Settings size={18} className="text-gray-400" /> Configurações
-                  </button>
-                  <button 
-                    onClick={() => { navigate('/perfil'); setShowMenu(false); }}
-                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 border-t border-gray-50"
-                  >
-                    <User size={18} className="text-gray-400" /> Meu Perfil
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+        
+        <div className="flex items-center gap-1">
+          {onSearchClick && (
+            <button 
+              onClick={onSearchClick}
+              className="p-2 active:bg-white/20 rounded-full transition-all"
+            >
+              <Search size={22} />
+            </button>
+          )}
+          <button className="p-2 active:bg-white/20 rounded-full transition-all">
+            <MoreVertical size={22} />
+          </button>
         </div>
       </header>
 
-      {/* Tabs (Optional) */}
-      {showTabs && (
-        <div className="bg-whatsapp-teal text-white flex border-t border-whatsapp-green/20 shadow-sm z-40">
-          <div 
-            onClick={() => navigate('/')}
-            className={`flex-1 text-center py-3 font-medium uppercase text-xs tracking-widest cursor-pointer transition-all ${
-              isActive('/') ? 'border-b-4 border-white opacity-100' : 'opacity-60'
-            }`}
-          >
-            Lavouras
-          </div>
-          <div 
-            onClick={() => navigate('/atividades')}
-            className={`flex-1 text-center py-3 font-medium uppercase text-xs tracking-widest cursor-pointer transition-all ${
-              isActive('/atividades') ? 'border-b-4 border-white opacity-100' : 'opacity-60'
-            }`}
-          >
-            Atividades
-          </div>
-          <div 
-            onClick={() => navigate('/configuracoes')}
-            className={`flex-1 text-center py-3 font-medium uppercase text-xs tracking-widest cursor-pointer transition-all ${
-              isActive('/configuracoes') ? 'border-b-4 border-white opacity-100' : 'opacity-60'
-            }`}
-          >
-            Configurações
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative bg-whatsapp-light">
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto bg-[#F0F2F5] relative pb-24 no-scrollbar">
         {children}
       </main>
+
+      {/* Bottom Navigation Bar (WHATSAPP PREMIUM STYLE) */}
+      {!isChat && (
+        <nav className="bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 max-w-md mx-auto flex justify-around items-center z-[80] py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path || 
+                           (item.path !== '/' && location.pathname.startsWith(item.path));
+            const Icon = item.icon;
+            
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className="flex flex-col items-center justify-center flex-1 py-1 transition-all group"
+              >
+                <div className={`relative flex flex-col items-center gap-1 transition-all`}>
+                  <div className={`px-5 py-1 rounded-full transition-all duration-300 ${isActive ? 'bg-whatsapp-teal/10' : 'group-active:bg-gray-100'}`}>
+                    <Icon 
+                      size={24} 
+                      className={`transition-colors duration-300 ${isActive ? 'text-whatsapp-teal' : 'text-gray-500'}`}
+                      strokeWidth={isActive ? 2.5 : 2}
+                    />
+                  </div>
+                  <span className={`text-[11px] font-medium transition-colors duration-300 ${isActive ? 'text-whatsapp-teal font-bold' : 'text-gray-500'}`}>
+                    {item.label}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 };
+
+// Icone customizado para simular o MoreVertical do Lucide que faltou no import anterior
+const MoreVertical = ({ size, className }: { size: number; className?: string }) => (
+  <svg 
+    width={size} height={size} viewBox="0 0 24 24" fill="none" 
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
+    strokeLinejoin="round" className={className}
+  >
+    <circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" />
+  </svg>
+);
 
 export default Layout;

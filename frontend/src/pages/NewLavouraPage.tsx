@@ -97,7 +97,7 @@ const NewLavouraPage = () => {
             </div>
             <label className="absolute bottom-1 right-1 bg-whatsapp-teal text-white p-2 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform">
               <Camera size={20} />
-              <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+              <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleImageChange} />
             </label>
           </div>
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Foto do Talhão</span>

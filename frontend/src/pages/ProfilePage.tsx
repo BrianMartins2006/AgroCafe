@@ -117,7 +117,7 @@ const ProfilePage = () => {
             </div>
             <label className="absolute bottom-1 right-1 w-12 h-12 bg-whatsapp-teal text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all border-4 border-white cursor-pointer">
               <Camera size={20} />
-              <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+              <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleFileUpload} />
             </label>
           </div>
           <h2 className="mt-6 text-2xl font-black text-gray-900">{profile?.nome || 'Carregando...'}</h2>
