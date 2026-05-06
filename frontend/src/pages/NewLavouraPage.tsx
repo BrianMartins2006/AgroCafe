@@ -15,6 +15,7 @@ const NewLavouraPage = () => {
   const [imgFile, setImgFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || '';
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isEdit) {
