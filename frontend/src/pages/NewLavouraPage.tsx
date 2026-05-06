@@ -14,11 +14,11 @@ const NewLavouraPage = () => {
   const [fotoPerfil, setFotoPerfil] = useState<string | null>(null);
   const [imgFile, setImgFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL || '';
 
   useEffect(() => {
     if (isEdit) {
-      fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/lavouras`)
+      fetch(API_URL + `/api/v1/lavouras`)
         .then(res => res.json())
         .then(data => {
           const lavoura = data.find((l: any) => l.id === parseInt(id));
@@ -32,7 +32,7 @@ const NewLavouraPage = () => {
           }
         });
     }
-  }, [id, isEdit]);
+  }, [id, isEdit, API_URL]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,7 +53,7 @@ const NewLavouraPage = () => {
       if (imgFile) {
         const formData = new FormData();
         formData.append('file', imgFile);
-        const uploadRes = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/upload', {
+        const uploadRes = await fetch(API_URL + '/api/v1/upload', {
           method: 'POST',
           body: formData
         });
@@ -63,7 +63,6 @@ const NewLavouraPage = () => {
         }
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com';
       const response = await fetch(API_URL + (isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras'), {
         method: isEdit ? 'PUT' : 'POST',
         headers: {
@@ -98,7 +97,11 @@ const NewLavouraPage = () => {
           <div className="relative group">
             <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-xl">
               {fotoPerfil ? (
-                <img src={fotoPerfil} alt="Perfil" className="w-full h-full object-cover" />
+                <img 
+                  src={fotoPerfil.startsWith('blob:') || fotoPerfil.startsWith('http') ? fotoPerfil : (API_URL + fotoPerfil)} 
+                  alt="Perfil" 
+                  className="w-full h-full object-cover" 
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-300">
                   <Sprout size={48} />

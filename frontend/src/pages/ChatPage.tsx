@@ -10,7 +10,7 @@ import {
 import Layout from '../components/Layout';
 import { useDraggableScroll } from '../hooks/useDraggableScroll';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const ICONS_MAP: any = {
   'Sprout': Sprout,
@@ -38,13 +38,10 @@ const ChatPage = () => {
   const [editingAtv, setEditingAtv] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showRespDropdown, setShowRespDropdown] = useState(false);
-  const [showEditRespDropdown, setShowEditRespDropdown] = useState(false);
 
   // Refs
   const respRef = useRef<HTMLDivElement>(null);
-  const editRespRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const editFileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Form Novo
@@ -76,6 +73,13 @@ const ChatPage = () => {
     queryFn: () => fetch(`${API_URL}/api/v1/lavouras/${id}/atividades`).then(res => res.json()),
     enabled: !!id
   });
+
+  // Efeito para definir a categoria padrão assim que carregar
+  useEffect(() => {
+    if (tipos.length > 0 && newAtvForm.id_tipo_atividade === 0) {
+      setNewAtvForm(p => ({ ...p, id_tipo_atividade: tipos[0].id }));
+    }
+  }, [tipos, newAtvForm.id_tipo_atividade]);
 
   // Mutations
   const createMutation = useMutation({
@@ -132,7 +136,6 @@ const ChatPage = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (respRef.current && !respRef.current.contains(event.target as Node)) setShowRespDropdown(false);
-      if (editRespRef.current && !editRespRef.current.contains(event.target as Node)) setShowEditRespDropdown(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -262,9 +265,9 @@ const ChatPage = () => {
                     {atv.imagens.map((img: any) => (
                       <img 
                         key={img.id} 
-                        src={img.foto_url} 
+                        src={img.foto_url ? (img.foto_url.startsWith('http') ? img.foto_url : (API_URL + img.foto_url)) : ""} 
                         className="w-full h-32 object-cover cursor-pointer active:scale-95 transition-all" 
-                        onClick={() => setLightboxImage(img.foto_url)} 
+                        onClick={() => setLightboxImage(img.foto_url.startsWith('http') ? img.foto_url : (API_URL + img.foto_url))} 
                       />
                     ))}
                   </div>

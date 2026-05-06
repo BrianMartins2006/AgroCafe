@@ -80,7 +80,7 @@ def get_lavouras():
     user = current_user
     if not user.is_authenticated:
         user = Usuario.query.first()
-    lavouras = Lavoura.query.filter_by(id_usuario_fk=user.id_usuario).all()
+    lavouras = Lavoura.query.filter_by(id_usuario_fk=user.id).all()
     return jsonify([l.to_dict() for l in lavouras])
 
 @api.route('/lavouras', methods=['POST'])
@@ -104,7 +104,7 @@ def create_lavoura():
         area_hectares=data.get('area_hectares'),
         localizacao=data.get('localizacao'),
         data_inicio=data.get('data_inicio'),
-        id_usuario_fk=user.id_usuario
+        id_usuario_fk=user.id
     )
     db.session.add(nova_lavoura)
     db.session.commit()
@@ -117,7 +117,7 @@ def handle_lavoura_id(id):
         user = Usuario.query.first()
         
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id_usuario:
+    if lavoura.id_usuario_fk != user.id:
         return jsonify({"erro": "Acesso negado"}), 403
     
     if request.method == 'PUT':
@@ -146,7 +146,7 @@ def get_lavoura(id):
         user = Usuario.query.first()
         
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id_usuario:
+    if lavoura.id_usuario_fk != user.id:
         return jsonify({"erro": "Acesso negado"}), 403
     return jsonify(lavoura.to_dict())
 
@@ -157,7 +157,7 @@ def get_lavoura_media(id):
         user = Usuario.query.first()
         
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id_usuario:
+    if lavoura.id_usuario_fk != user.id:
         return jsonify({"erro": "Acesso negado"}), 403
         
     atividades = Atividade.query.filter_by(id_lavoura_fk=id).all()
@@ -181,7 +181,7 @@ def toggle_lavoura_pin(id):
         user = Usuario.query.first()
         
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id_usuario:
+    if lavoura.id_usuario_fk != user.id:
         return jsonify({"erro": "Acesso negado"}), 403
         
     lavoura.is_pinned = not getattr(lavoura, 'is_pinned', False)
@@ -195,7 +195,7 @@ def get_atividades_lavoura(id):
         user = Usuario.query.first()
         
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id_usuario:
+    if lavoura.id_usuario_fk != user.id:
         return jsonify({"erro": "Acesso negado"}), 403
         
     atividades = Atividade.query.filter_by(id_lavoura_fk=id).order_by(Atividade.data.asc()).all()
@@ -212,7 +212,7 @@ def get_global_feed():
     if not user.is_authenticated:
         user = Usuario.query.first() # Fallback para dev
         
-    atividades = Atividade.query.join(Lavoura).filter(Lavoura.id_usuario_fk == user.id_usuario).order_by(Atividade.data.desc()).all()
+    atividades = Atividade.query.join(Lavoura).filter(Lavoura.id_usuario_fk == user.id).order_by(Atividade.data.desc()).all()
     return jsonify([a.to_dict() for a in atividades])
 
 @api.route('/atividades', methods=['POST'])
@@ -329,21 +329,22 @@ def upload_file():
     
     if file:
         try:
-            # Configurar Cloudinary extraindo os dados da URL manualmente para evitar erros de parse
+            # Configurar Cloudinary
             cloudinary_url = current_app.config.get('CLOUDINARY_URL')
             if not cloudinary_url:
                 return jsonify({"erro": "Configuração Cloudinary ausente no servidor"}), 500
             
-            # Limpa espaços e garante o formato correto
-            cloudinary_url = cloudinary_url.strip()
+            # Limpeza e Extração via Regex (o jeito mais seguro)
+            import re
+            pattern = r"cloudinary://([0-9]+):([a-zA-Z0-9_\-]+)@([a-zA-Z0-9_\-]+)"
+            match = re.search(pattern, cloudinary_url.strip())
             
-            # Extrai os dados (formato: cloudinary://api_key:api_secret@cloud_name)
-            try:
-                parts = cloudinary_url.replace("cloudinary://", "").split("@")
-                credentials = parts[0].split(":")
-                cloud_name = parts[1]
-                api_key = credentials[0]
-                api_secret = credentials[1]
+            if match:
+                api_key = match.group(1)
+                api_secret = match.group(2)
+                cloud_name = match.group(3)
+                
+                print(f"DEBUG CLOUDINARY: CloudName='{cloud_name}' Key='{api_key}'")
                 
                 cloudinary.config(
                     cloud_name=cloud_name,
@@ -351,9 +352,9 @@ def upload_file():
                     api_secret=api_secret,
                     secure=True
                 )
-            except Exception:
-                # Fallback para o método automático se o manual falhar
-                cloudinary.config(from_url=cloudinary_url)
+            else:
+                # Fallback se o regex falhar
+                cloudinary.config(from_url=cloudinary_url.strip())
             
             # Upload para o Cloudinary
             upload_result = cloudinary.uploader.upload(

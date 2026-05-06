@@ -96,8 +96,8 @@ const SettingsPage = () => {
   const loadData = async () => {
     try {
       const [profRes, tiposRes] = await Promise.all([
-        fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/perfil'),
-        fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/tipos-atividade')
+        fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/perfil'),
+        fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/tipos-atividade')
       ]);
       setProfile(await profRes.json());
       setTipos(await tiposRes.json());
@@ -123,7 +123,7 @@ const SettingsPage = () => {
     if (!form.nome.trim()) return;
     setSaving(true);
     try {
-      const url = (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + (editingTipo ? `/api/v1/tipos-atividade/${editingTipo.id}` : '/api/v1/tipos-atividade');
+      const url = (import.meta.env.VITE_API_URL || '') + (editingTipo ? `/api/v1/tipos-atividade/${editingTipo.id}` : '/api/v1/tipos-atividade');
       const method = editingTipo ? 'PUT' : 'POST';
       
       const res = await fetch(url, {
@@ -158,7 +158,7 @@ const SettingsPage = () => {
             onClick={async () => {
               toast.dismiss(t.id);
               try {
-                const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/tipos-atividade/${id}`, { method: 'DELETE' });
+                const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/tipos-atividade/${id}`, { method: 'DELETE' });
                 if (res.ok) {
                   loadData();
                   toast.success("Excluída com sucesso");
@@ -201,7 +201,7 @@ const SettingsPage = () => {
         >
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-md">
             {profile?.foto_url ? (
-              <img src={profile.foto_url?.startsWith('http') ? profile.foto_url : (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + profile.foto_url} alt="Profile" className="w-full h-full object-cover" />
+              <img src={profile.foto_url?.startsWith('http') ? profile.foto_url : (import.meta.env.VITE_API_URL || '') + profile.foto_url} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <User size={32} className="text-gray-300" />
             )}

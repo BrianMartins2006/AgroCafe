@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Camera, Check, ArrowRight, User, Coffee } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || ''; // Vazio usa o proxy do Vite (localhost:5000)
 
 const WelcomePage = () => {
   const navigate = useNavigate();

@@ -15,7 +15,7 @@ interface Lavoura {
   ultima_atividade_date?: string | null;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const LavourasPage = () => {
   const queryClient = useQueryClient();
@@ -152,7 +152,7 @@ const LavourasPage = () => {
               {/* Avatar */}
               <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 shadow-sm">
                 <img 
-                  src={lavoura.foto_perfil || "/images/default-lavoura.jpg"} 
+                  src={lavoura.foto_perfil ? (lavoura.foto_perfil.startsWith('http') ? lavoura.foto_perfil : (API_URL + lavoura.foto_perfil)) : "/images/default-lavoura.jpg"} 
                   alt={lavoura.nome} 
                   className="w-full h-full object-cover" 
                 />

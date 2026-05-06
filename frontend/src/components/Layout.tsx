@@ -16,6 +16,8 @@ interface LayoutProps {
   showTabs?: boolean;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 const Layout: React.FC<LayoutProps> = ({ 
   children, 
   title, 
@@ -68,7 +70,11 @@ const Layout: React.FC<LayoutProps> = ({
             className={`flex items-center gap-2.5 flex-1 overflow-hidden ${onTitleClick ? 'cursor-pointer active:bg-white/10 rounded-xl px-2 py-1 transition-all' : 'px-2'}`}
           >
             {avatarUrl && (
-              <img src={avatarUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-white/20 shrink-0 bg-white/10" />
+              <img 
+                src={avatarUrl.startsWith('http') ? avatarUrl : (API_URL + avatarUrl)} 
+                alt="Avatar" 
+                className="w-10 h-10 rounded-full object-cover border border-white/20 shrink-0 bg-white/10" 
+              />
             )}
             <div className="flex flex-col overflow-hidden">
               <h1 className="text-lg font-medium tracking-tight leading-tight truncate">
