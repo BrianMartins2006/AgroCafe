@@ -22,7 +22,7 @@ const ProfilePage = () => {
   });
 
   useEffect(() => {
-    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/perfil')
+    fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/perfil')
       .then(res => res.json())
       .then(data => {
         setProfile(data);
@@ -48,14 +48,14 @@ const ProfilePage = () => {
 
     try {
       setSaving(true);
-      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/upload', {
+      const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/upload', {
         method: 'POST',
         body: formData
       });
 
       if (res.ok) {
         const data = await res.json();
-        const updateRes = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/perfil', {
+        const updateRes = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/perfil', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...form, foto_url: data.url })
@@ -81,7 +81,7 @@ const ProfilePage = () => {
     setSuccess(false);
     
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/perfil', {
+      const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/perfil', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, foto_url: profile?.foto_url })

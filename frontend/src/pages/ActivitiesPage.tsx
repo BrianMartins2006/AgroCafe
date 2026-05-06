@@ -26,7 +26,7 @@ const ActivitiesPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/feed')
+    fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/feed')
       .then(res => res.json())
       .then(data => {
         setAtividades(data);

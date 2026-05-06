@@ -18,7 +18,7 @@ const NewLavouraPage = () => {
 
   useEffect(() => {
     if (isEdit) {
-      fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras`)
+      fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/lavouras`)
         .then(res => res.json())
         .then(data => {
           const lavoura = data.find((l: any) => l.id === parseInt(id));
@@ -53,7 +53,7 @@ const NewLavouraPage = () => {
       if (imgFile) {
         const formData = new FormData();
         formData.append('file', imgFile);
-        const uploadRes = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/upload', {
+        const uploadRes = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/upload', {
           method: 'POST',
           body: formData
         });
@@ -63,7 +63,8 @@ const NewLavouraPage = () => {
         }
       }
 
-      const response = await fetch((import.meta.env.VITE_API_URL || '') + (isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras'), {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com';
+      const response = await fetch(API_URL + (isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras'), {
         method: isEdit ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -198,8 +199,8 @@ const NewLavouraPage = () => {
         </div>
       </div>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-md flex justify-end px-6 z-50 pointer-events-none">
+      {/* Floating Action Button - Ajustado para ficar acima da barra de navegação */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md flex justify-end px-6 z-[90] pointer-events-none">
         <button 
           onClick={handleSave}
           disabled={!nome.trim() || loading}

@@ -39,7 +39,7 @@ const LavourasPage = () => {
 
   const loadLavouras = () => {
     setLoading(true);
-    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/lavouras')
+    fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/lavouras')
       .then(res => res.json())
       .then(data => {
         setLavouras(data || []);
@@ -58,7 +58,7 @@ const LavourasPage = () => {
   const handleDelete = async () => {
     if (!selectedLavoura) return;
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras/${selectedLavoura.id}`, {
+      const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/lavouras/${selectedLavoura.id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -74,7 +74,7 @@ const LavourasPage = () => {
   const handleTogglePin = async (e: React.MouseEvent, lavoura: Lavoura) => {
     e.stopPropagation();
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras/${lavoura.id}/pin`, {
+      const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/lavouras/${lavoura.id}/pin`, {
         method: 'PATCH'
       });
       if (res.ok) {

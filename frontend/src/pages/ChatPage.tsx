@@ -73,7 +73,7 @@ const ChatPage = () => {
   const loadInitialData = async () => {
     try {
       const [lavRes, tipRes, funcRes] = await Promise.all([
-        fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras`), fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/tipos-atividade'), fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/funcionarios')
+        fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/lavouras`), fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/tipos-atividade'), fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/funcionarios')
       ]);
       const allLavouras = await lavRes.json();
       setLavoura(allLavouras.find((l: any) => l.id === Number(id)));
@@ -88,7 +88,7 @@ const ChatPage = () => {
   const loadAtividades = async () => {
     setLoading(true);
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras/${id}/atividades`);
+      const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/lavouras/${id}/atividades`);
       setAtividades(await res.json());
     } finally { setLoading(false); }
   };
@@ -101,7 +101,7 @@ const ChatPage = () => {
       const uploadedUrls = await Promise.all(files.map(async (file) => {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/upload', { method: 'POST', body: formData });
+        const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/upload', { method: 'POST', body: formData });
         const data = await res.json();
         return res.ok ? data.url : null;
       }));
@@ -126,7 +126,7 @@ const ChatPage = () => {
     if (!newAtvForm.descricao.trim() && newAtvForm.fotos.length === 0) return;
     setSending(true);
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/atividades', {
+      const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/atividades', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newAtvForm, id_lavoura: Number(id) })
       });
@@ -142,7 +142,7 @@ const ChatPage = () => {
     if (!editingAtv) return;
     setSending(true);
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/atividades/${editingAtv.id}`, {
+      const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/atividades/${editingAtv.id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           descricao: editingAtv.descricao,
@@ -157,7 +157,7 @@ const ChatPage = () => {
   };
 
   const handleDelete = async (idAtv: number) => {
-    const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/atividades/${idAtv}`, { method: 'DELETE' });
+    const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/atividades/${idAtv}`, { method: 'DELETE' });
     if (res.ok) { setDeletingId(null); loadAtividades(); }
   };
 

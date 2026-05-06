@@ -29,7 +29,7 @@ const MaquinariosPage = () => {
 
   const loadMaquinarios = () => {
     setLoading(true);
-    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/maquinarios')
+    fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/maquinarios')
       .then(res => res.json())
       .then(data => {
         setMaquinarios(data);
@@ -48,7 +48,7 @@ const MaquinariosPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingMaq ? 'PUT' : 'POST';
-    const url = (import.meta.env.VITE_API_URL || '') + (editingMaq ? `/api/v1/maquinarios/${editingMaq.id_maquina}` : '/api/v1/maquinarios');
+    const url = (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + (editingMaq ? `/api/v1/maquinarios/${editingMaq.id_maquina}` : '/api/v1/maquinarios');
 
     try {
       const res = await fetch(url, {
@@ -82,7 +82,7 @@ const MaquinariosPage = () => {
             onClick={async () => {
               toast.dismiss(t.id);
               try {
-                const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/maquinarios/${id}`, { method: 'DELETE' });
+                const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/maquinarios/${id}`, { method: 'DELETE' });
                 if (res.ok) {
                   loadMaquinarios();
                   toast.success("Excluído com sucesso");

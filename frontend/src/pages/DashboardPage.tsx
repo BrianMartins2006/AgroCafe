@@ -19,10 +19,10 @@ const DashboardPage = () => {
     // Simulando busca de dados agregados
     // Em uma app real, faríamos um fetch para /api/v1/stats
     Promise.all([
-      fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/lavouras').then(res => res.json()),
-      fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/feed').then(res => res.json()),
-      fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/funcionarios').then(res => res.json()),
-      fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/maquinarios').then(res => res.json())
+      fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/lavouras').then(res => res.json()),
+      fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/feed').then(res => res.json()),
+      fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/funcionarios').then(res => res.json()),
+      fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/maquinarios').then(res => res.json())
     ]).then(([lavouras, atividades, funcionarios, maquinarios]) => {
       
       // Processando dados para os gráficos
