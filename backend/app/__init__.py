@@ -60,4 +60,22 @@ def create_app(config_class=Config):
             db.session.commit()
             print("Usuário administrador padrão criado!")
 
+    @app.errorhandler(500)
+    def handle_500_error(e):
+        import traceback
+        return {
+            "error": "Internal Server Error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }, 500
+
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        import traceback
+        return {
+            "error": "Unhandled Exception",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }, 500
+
     return app
