@@ -29,7 +29,7 @@ const MaquinariosPage = () => {
 
   const loadMaquinarios = () => {
     setLoading(true);
-    fetch('/api/v1/maquinarios')
+    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/maquinarios')
       .then(res => res.json())
       .then(data => {
         setMaquinarios(data);

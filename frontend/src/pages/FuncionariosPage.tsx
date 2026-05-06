@@ -29,7 +29,7 @@ const FuncionariosPage = () => {
 
   const loadFuncionarios = () => {
     setLoading(true);
-    fetch('/api/v1/funcionarios')
+    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/funcionarios')
       .then(res => res.json())
       .then(data => {
         setFuncionarios(data);

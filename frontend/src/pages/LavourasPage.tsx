@@ -39,7 +39,7 @@ const LavourasPage = () => {
 
   const loadLavouras = () => {
     setLoading(true);
-    fetch('/api/v1/lavouras')
+    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/lavouras')
       .then(res => res.json())
       .then(data => {
         setLavouras(data || []);

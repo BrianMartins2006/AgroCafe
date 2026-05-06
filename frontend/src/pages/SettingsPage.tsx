@@ -60,8 +60,8 @@ const SettingsPage = () => {
   const loadData = async () => {
     try {
       const [profRes, tiposRes] = await Promise.all([
-        fetch('/api/v1/perfil'),
-        fetch('/api/v1/tipos-atividade')
+        fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/perfil'),
+        fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/tipos-atividade')
       ]);
       setProfile(await profRes.json());
       setTipos(await tiposRes.json());

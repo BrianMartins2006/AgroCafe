@@ -53,7 +53,7 @@ const NewLavouraPage = () => {
       if (imgFile) {
         const formData = new FormData();
         formData.append('file', imgFile);
-        const uploadRes = await fetch('/api/v1/upload', {
+        const uploadRes = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/upload', {
           method: 'POST',
           body: formData
         });
@@ -106,7 +106,7 @@ const NewLavouraPage = () => {
             </div>
             <label className="absolute bottom-1 right-1 bg-whatsapp-teal text-white p-2 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform">
               <Camera size={20} />
-              <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleImageChange} />
+              <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
             </label>
           </div>
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Foto do Talhão</span>

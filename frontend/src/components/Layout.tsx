@@ -144,7 +144,7 @@ const Layout: React.FC<LayoutProps> = ({
 
       {/* Bottom Navigation Bar (WHATSAPP PREMIUM STYLE) */}
       {!isChat && (
-        <nav className="bg-white/85 backdrop-blur-xl border-t border-gray-200/50 fixed bottom-0 left-0 right-0 max-w-md mx-auto flex justify-around items-center z-[80] py-2 shadow-[0_-2px_20px_rgba(0,0,0,0.04)]">
+        <nav className="bg-white/90 backdrop-blur-md border-t border-gray-100 fixed bottom-0 left-0 right-0 max-w-md mx-auto flex justify-around items-center z-[80] py-1 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path || 
                            (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -159,12 +159,12 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className={`relative flex flex-col items-center gap-1 transition-all`}>
                   <div className={`px-5 py-1 rounded-full transition-all duration-300 ${isActive ? 'bg-whatsapp-teal/10' : 'group-active:bg-gray-100'}`}>
                     <Icon 
-                      size={24} 
+                      size={22} 
                       className={`transition-colors duration-300 ${isActive ? 'text-whatsapp-teal' : 'text-gray-500'}`}
                       strokeWidth={isActive ? 2.5 : 2}
                     />
                   </div>
-                  <span className={`text-[11px] font-medium transition-colors duration-300 ${isActive ? 'text-whatsapp-teal font-bold' : 'text-gray-500'}`}>
+                  <span className={`text-[10px] font-medium transition-colors duration-300 ${isActive ? 'text-whatsapp-teal font-bold' : 'text-gray-500'}`}>
                     {item.label}
                   </span>
                 </div>
