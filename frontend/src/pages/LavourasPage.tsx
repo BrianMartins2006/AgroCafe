@@ -225,7 +225,7 @@ const LavourasPage = () => {
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden animate-in slide-in-from-bottom-10 duration-300 shadow-2xl">
             <div className="p-8">
               <div className="flex items-center gap-5 mb-8">
-                <img src={selectedLavoura.foto_perfil} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-gray-50 shadow-lg" />
+                <img src={selectedLavoura.foto_perfil?.startsWith('http') ? selectedLavoura.foto_perfil : (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + selectedLavoura.foto_perfil} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-gray-50 shadow-lg" />
                 <div>
                   <h3 className="font-black text-2xl text-gray-900 leading-tight">{selectedLavoura.nome}</h3>
                   <p className="text-gray-400 font-bold text-sm flex items-center gap-1 mt-1">

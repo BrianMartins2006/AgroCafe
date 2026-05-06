@@ -234,7 +234,7 @@ const ChatPage = () => {
                 <p className="text-[13px] text-gray-800 leading-snug font-medium mb-1 whitespace-pre-wrap">{atv.descricao}</p>
                 {atv.imagens?.length > 0 && (
                   <div className={`mt-2 grid ${atv.imagens.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-1 rounded-lg overflow-hidden`}>
-                    {atv.imagens.map((img: any) => <img key={img.id} src={img.foto_url} className="w-full h-32 object-cover cursor-pointer active:scale-95 transition-all" onClick={() => setLightboxImage(img.foto_url)} />)}
+                    {atv.imagens.map((img: any) => <img key={img.id} src={img.foto_url?.startsWith('http') ? img.foto_url : (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + img.foto_url} className="w-full h-32 object-cover cursor-pointer active:scale-95 transition-all" onClick={() => setLightboxImage(img.foto_url)} />)}
                   </div>
                 )}
                 <div className="text-[9px] text-gray-400 font-bold mt-1 text-right italic">{new Date(atv.data).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -338,7 +338,7 @@ const ChatPage = () => {
                 <div className="grid grid-cols-3 gap-2">
                   {editingAtv.imagens?.map((img: any, idx: number) => (
                     <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm">
-                      <img src={img.foto_url} className="w-full h-full object-cover" />
+                      <img src={img.foto_url?.startsWith('http') ? img.foto_url : (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + img.foto_url} className="w-full h-full object-cover" />
                       <button onClick={() => setEditingAtv({...editingAtv, imagens: editingAtv.imagens.filter((_: any, i: number) => i !== idx)})} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md"><X size={10} /></button>
                     </div>
                   ))}

@@ -84,7 +84,7 @@ const ActivitiesPage = () => {
                     {atv.imagens.map((img) => (
                       <img 
                         key={img.id} 
-                        src={img.foto_url} 
+                        src={img.foto_url?.startsWith('http') ? img.foto_url : (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + img.foto_url} 
                         className="w-20 h-20 object-cover rounded-lg border border-gray-50 shrink-0" 
                       />
                     ))}

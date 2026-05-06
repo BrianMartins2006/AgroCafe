@@ -132,44 +132,48 @@ def get_global_feed():
 
 @api.route('/atividades', methods=['POST'])
 def create_atividade():
-    data = request.json
-    
-    # Lógica de Data e Hora Inteligente
-    dt_atividade = datetime.now()
-    if data.get('data'):
-        try:
-            # Se vier apenas data (YYYY-MM-DD), tentamos manter a hora atual se for hoje
-            if len(data.get('data')) <= 10:
-                data_fornecida = datetime.fromisoformat(data.get('data')).date()
-                if data_fornecida == datetime.now().date():
-                    dt_atividade = datetime.now() # É hoje, usa hora atual
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"erro": "Nenhum dado recebido"}), 400
+            
+        # Lógica de Data e Hora Inteligente
+        dt_atividade = datetime.now()
+        if data.get('data'):
+            try:
+                if len(data.get('data')) <= 10:
+                    data_fornecida = datetime.fromisoformat(data.get('data')).date()
+                    if data_fornecida == datetime.now().date():
+                        dt_atividade = datetime.now()
+                    else:
+                        dt_atividade = datetime.combine(data_fornecida, datetime.min.time().replace(hour=12))
                 else:
-                    # É outro dia, define meio-dia como padrão em vez de meia-noite
-                    dt_atividade = datetime.combine(data_fornecida, datetime.min.time().replace(hour=12))
-            else:
-                # Se vier ISO completo, respeita
-                dt_str = data.get('data').replace('Z', '')
-                dt_atividade = datetime.fromisoformat(dt_str)
-        except Exception as e:
-            print(f"Erro ao converter data: {e}")
+                    dt_str = data.get('data').replace('Z', '')
+                    dt_atividade = datetime.fromisoformat(dt_str)
+            except Exception as e:
+                print(f"Erro ao converter data: {e}")
 
-    nova_atividade = Atividade(
-        id_lavoura_fk=data.get('id_lavoura'),
-        id_tipo_atividade_fk=data.get('id_tipo_atividade'),
-        descricao=data.get('descricao'),
-        responsavel=data.get('responsavel') or "Produtor",
-        data=dt_atividade
-    )
-    db.session.add(nova_atividade)
-    db.session.flush()
-    
-    fotos = data.get('fotos', [])
-    for foto_url in fotos:
-        nova_imagem = AtividadeImagem(id_atividade_fk=nova_atividade.id, foto_url=foto_url)
-        db.session.add(nova_imagem)
-    
-    db.session.commit()
-    return jsonify(nova_atividade.to_dict()), 201
+        nova_atividade = Atividade(
+            id_lavoura_fk=data.get('id_lavoura'),
+            id_tipo_atividade_fk=data.get('id_tipo_atividade'),
+            descricao=data.get('descricao'),
+            responsavel=data.get('responsavel') or "Produtor",
+            data=dt_atividade
+        )
+        db.session.add(nova_atividade)
+        db.session.flush()
+        
+        fotos = data.get('fotos', [])
+        for foto_url in fotos:
+            nova_imagem = AtividadeImagem(id_atividade_fk=nova_atividade.id, foto_url=foto_url)
+            db.session.add(nova_imagem)
+        
+        db.session.commit()
+        return jsonify(nova_atividade.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        print(f"ERRO CRÍTICO NO BACKEND: {str(e)}")
+        return jsonify({"erro": str(e)}), 500
 
 @api.route('/atividades/<int:id>', methods=['PUT'])
 def update_atividade(id):

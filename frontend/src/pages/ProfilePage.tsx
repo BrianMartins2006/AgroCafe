@@ -108,7 +108,7 @@ const ProfilePage = () => {
           <div className="relative group">
             <div className="w-40 h-40 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-gray-50 shadow-xl">
               {profile?.foto_url ? (
-                <img src={profile.foto_url} alt="Profile" className="w-full h-full object-cover" />
+                <img src={profile.foto_url?.startsWith('http') ? profile.foto_url : (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + profile.foto_url} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <User size={80} className="text-gray-300" />
               )}

@@ -37,6 +37,20 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        # Garantir que existam categorias de atividade
+        from app.models.lavoura import TipoAtividade
+        if not TipoAtividade.query.first():
+            tipos = [
+                TipoAtividade(nome="Adubação", icone="Sprouts", cor="bg-green-500"),
+                TipoAtividade(nome="Colheita", icone="Truck", cor="bg-orange-500"),
+                TipoAtividade(nome="Pulverização", icone="Wind", cor="bg-blue-500"),
+                TipoAtividade(nome="Monitoramento", icone="Search", cor="bg-yellow-500"),
+                TipoAtividade(nome="Outros", icone="Info", cor="bg-gray-500")
+            ]
+            db.session.add_all(tipos)
+            db.session.commit()
+            print("Categorias de atividade padrão criadas!")
+
         # Garantir que exista pelo menos um usuário
         from app.models.user_model import Usuario
         if not Usuario.query.first():

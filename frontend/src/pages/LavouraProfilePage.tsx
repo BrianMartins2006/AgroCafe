@@ -68,7 +68,7 @@ const LavouraProfilePage = () => {
         
         <div className="h-64 sm:h-80 overflow-hidden relative group">
           <img 
-            src={lavoura?.foto_perfil || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=800&q=80"} 
+            src={lavoura?.foto_perfil ? (lavoura.foto_perfil.startsWith('http') ? lavoura.foto_perfil : (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + lavoura.foto_perfil) : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=800&q=80"} 
             alt={lavoura?.nome}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
@@ -140,7 +140,7 @@ const LavouraProfilePage = () => {
                   className="aspect-square rounded-lg overflow-hidden border border-gray-50 cursor-pointer hover:opacity-80 transition-opacity relative group"
                 >
                   <img 
-                    src={item.foto_url} 
+                    src={item.foto_url?.startsWith('http') ? item.foto_url : (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + item.foto_url} 
                     alt="Mídia" 
                     className="w-full h-full object-cover" 
                   />
