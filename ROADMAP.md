@@ -19,6 +19,7 @@ Este documento contém os pontos de melhoria identificados após o primeiro depl
 - [ ] **Chat - Barra de Input:** Fixar a barra de mensagem no rodapé absoluto (Sticky Bottom).
 - [ ] **Tipografia Mobile:** Aumentar o tamanho das fontes e balões de mensagem para melhor legibilidade.
 - [ ] **Toasts/Logs:** Reduzir o tempo de exibição dos alertas de sistema nas configurações.
+- [ ] **Data e Hora:** Corrigir a exibição e fuso horário dos registros (hoje pode aparecer com atraso/adiantado).
 - [ ] **Transições:** Adicionar animações suaves de transição entre páginas.
 
 ## 📦 4. Pendências de Deploy
