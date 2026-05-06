@@ -329,12 +329,31 @@ def upload_file():
     
     if file:
         try:
-            # Configurar Cloudinary usando a URL do ambiente
-            cloudinary_config = current_app.config.get('CLOUDINARY_URL')
-            if not cloudinary_config:
+            # Configurar Cloudinary extraindo os dados da URL manualmente para evitar erros de parse
+            cloudinary_url = current_app.config.get('CLOUDINARY_URL')
+            if not cloudinary_url:
                 return jsonify({"erro": "Configuração Cloudinary ausente no servidor"}), 500
+            
+            # Limpa espaços e garante o formato correto
+            cloudinary_url = cloudinary_url.strip()
+            
+            # Extrai os dados (formato: cloudinary://api_key:api_secret@cloud_name)
+            try:
+                parts = cloudinary_url.replace("cloudinary://", "").split("@")
+                credentials = parts[0].split(":")
+                cloud_name = parts[1]
+                api_key = credentials[0]
+                api_secret = credentials[1]
                 
-            cloudinary.config(from_url=cloudinary_config)
+                cloudinary.config(
+                    cloud_name=cloud_name,
+                    api_key=api_key,
+                    api_secret=api_secret,
+                    secure=True
+                )
+            except Exception:
+                # Fallback para o método automático se o manual falhar
+                cloudinary.config(from_url=cloudinary_url)
             
             # Upload para o Cloudinary
             upload_result = cloudinary.uploader.upload(
