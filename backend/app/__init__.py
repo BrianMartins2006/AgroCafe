@@ -38,7 +38,7 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
         # Garantir que existam categorias de atividade
-        from app.models.lavoura import TipoAtividade
+        from app.models import TipoAtividade
         if not TipoAtividade.query.first():
             tipos = [
                 TipoAtividade(nome="Adubação", icone="Sprouts", cor="bg-green-500"),
@@ -52,7 +52,7 @@ def create_app(config_class=Config):
             print("Categorias de atividade padrão criadas!")
 
         # Garantir que exista pelo menos um usuário
-        from app.models.user_model import Usuario
+        from app.models import Usuario
         if not Usuario.query.first():
             admin = Usuario(nome="Administrador", email="admin@agrocafe.com")
             admin.set_password("admin123")

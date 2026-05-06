@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Users, Truck, ChevronRight, Plus, User, 
   LayoutGrid, Trash2, Edit, X, Check,
-  Sprout, Wind, Zap, Droplets, Sun, Hammer
+  Sprout, Wind, Zap, Droplets, Sun, Hammer,
+  Download, RefreshCw, ZapOff
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
@@ -52,6 +53,41 @@ const SettingsPage = () => {
   const [editingTipo, setEditingTipo] = useState<TipoAtividade | null>(null);
   const [form, setForm] = useState({ nome: '', icone: 'Sprout', cor: 'bg-whatsapp-green' });
   const [saving, setSaving] = useState(false);
+  
+  // PWA Install Prompt
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setDeferredPrompt(null);
+    } else {
+      toast((t) => (
+        <div className="text-xs">
+          <p className="font-bold mb-2">Instalação Manual:</p>
+          <p>• <b>iPhone:</b> Clique no ícone de "Compartilhar" e depois em "Adicionar à Tela de Início".</p>
+          <p className="mt-2">• <b>Android:</b> Clique nos 3 pontinhos do menu e selecione "Instalar Aplicativo".</p>
+          <button onClick={() => toast.dismiss(t.id)} className="mt-2 bg-whatsapp-teal text-white px-2 py-1 rounded">Ok</button>
+        </div>
+      ), { duration: 6000 });
+    }
+  };
+
+  const handleClearCache = () => {
+    if (window.confirm("Limpar cache e atualizar o app? Isso pode resolver lentidão.")) {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.reload();
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -188,6 +224,46 @@ const SettingsPage = () => {
           <div onClick={() => navigate('/maquinarios')} className="bg-white p-8 rounded-[2.5rem] shadow-sm flex flex-col items-center gap-3 border border-gray-50 active:scale-95 transition-all">
             <div className="w-14 h-14 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center shadow-inner"><Truck size={28} /></div>
             <span className="text-sm font-black text-gray-700">Frota</span>
+          </div>
+        </div>
+        
+        {/* PWA & Performance Section */}
+        <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-50 space-y-4">
+          <h3 className="text-lg font-black text-gray-900 px-2">App & Performance</h3>
+          
+          <div className="grid grid-cols-1 gap-3">
+            <button 
+              onClick={handleInstall}
+              className="flex items-center gap-4 p-4 bg-whatsapp-teal/5 rounded-3xl border border-whatsapp-teal/10 active:scale-95 transition-all"
+            >
+              <div className="w-10 h-10 bg-whatsapp-teal text-white rounded-xl flex items-center justify-center shadow-md">
+                <Download size={20} />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-black text-gray-800">Instalar Aplicativo</p>
+                <p className="text-[10px] text-gray-500 font-medium">Tenha o AgroCafé na sua tela de início</p>
+              </div>
+            </button>
+
+            <button 
+              onClick={handleClearCache}
+              className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl border border-gray-100 active:scale-95 transition-all"
+            >
+              <div className="w-10 h-10 bg-white text-gray-500 rounded-xl flex items-center justify-center shadow-sm border border-gray-100">
+                <RefreshCw size={20} />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-black text-gray-800">Limpar Cache e Atualizar</p>
+                <p className="text-[10px] text-gray-500 font-medium">Corrige lentidão e atualiza recursos</p>
+              </div>
+            </button>
+          </div>
+
+          <div className="p-4 bg-orange-50 rounded-2xl flex gap-3">
+            <ZapOff size={24} className="text-orange-500 shrink-0" />
+            <p className="text-[10px] text-orange-700 font-medium leading-relaxed">
+              <b>Dica de Velocidade:</b> Por estarmos no plano gratuito, o servidor "dorme" após 15min. O primeiro acesso pode demorar 50s, mas depois disso ele fica rápido!
+            </p>
           </div>
         </div>
 
