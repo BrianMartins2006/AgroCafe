@@ -48,7 +48,7 @@ const FuncionariosPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingFunc ? 'PUT' : 'POST';
-    const url = editingFunc ? `/api/v1/funcionarios/${editingFunc.id_funcionario}` : '/api/v1/funcionarios';
+    const url = (import.meta.env.VITE_API_URL || '') + (editingFunc ? `/api/v1/funcionarios/${editingFunc.id_funcionario}` : '/api/v1/funcionarios');
 
     try {
       const res = await fetch(url, {
@@ -82,7 +82,7 @@ const FuncionariosPage = () => {
             onClick={async () => {
               toast.dismiss(t.id);
               try {
-                const res = await fetch(`/api/v1/funcionarios/${id}`, { method: 'DELETE' });
+                const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/funcionarios/${id}`, { method: 'DELETE' });
                 if (res.ok) {
                   loadFuncionarios();
                   toast.success("Excluído com sucesso");

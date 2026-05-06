@@ -15,7 +15,7 @@ login_manager.login_message_category = "info"
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
-    CORS(app)
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -37,5 +37,13 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        # Garantir que exista pelo menos um usuário
+        from app.models.user_model import Usuario
+        if not Usuario.query.first():
+            admin = Usuario(nome="Administrador", email="admin@agrocafe.com")
+            admin.set_password("admin123")
+            db.session.add(admin)
+            db.session.commit()
+            print("Usuário administrador padrão criado!")
 
     return app

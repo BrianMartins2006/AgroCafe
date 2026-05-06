@@ -87,7 +87,7 @@ const SettingsPage = () => {
     if (!form.nome.trim()) return;
     setSaving(true);
     try {
-      const url = editingTipo ? `/api/v1/tipos-atividade/${editingTipo.id}` : '/api/v1/tipos-atividade';
+      const url = (import.meta.env.VITE_API_URL || '') + (editingTipo ? `/api/v1/tipos-atividade/${editingTipo.id}` : '/api/v1/tipos-atividade');
       const method = editingTipo ? 'PUT' : 'POST';
       
       const res = await fetch(url, {
@@ -122,7 +122,7 @@ const SettingsPage = () => {
             onClick={async () => {
               toast.dismiss(t.id);
               try {
-                const res = await fetch(`/api/v1/tipos-atividade/${id}`, { method: 'DELETE' });
+                const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/tipos-atividade/${id}`, { method: 'DELETE' });
                 if (res.ok) {
                   loadData();
                   toast.success("Excluída com sucesso");

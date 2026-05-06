@@ -58,7 +58,7 @@ const LavourasPage = () => {
   const handleDelete = async () => {
     if (!selectedLavoura) return;
     try {
-      const res = await fetch(`/api/v1/lavouras/${selectedLavoura.id}`, {
+      const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras/${selectedLavoura.id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -74,7 +74,7 @@ const LavourasPage = () => {
   const handleTogglePin = async (e: React.MouseEvent, lavoura: Lavoura) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`/api/v1/lavouras/${lavoura.id}/pin`, {
+      const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras/${lavoura.id}/pin`, {
         method: 'PATCH'
       });
       if (res.ok) {

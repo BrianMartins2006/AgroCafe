@@ -30,13 +30,13 @@ const LavouraProfilePage = () => {
 
   useEffect(() => {
     // Buscar detalhes da lavoura
-    fetch(`/api/v1/lavouras/${id}`)
+    fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras/${id}`)
       .then(res => res.json())
       .then(data => setLavoura(data))
       .catch(err => console.error("Erro ao buscar lavoura:", err));
 
     // Buscar mídia da lavoura
-    fetch(`/api/v1/lavouras/${id}/media`)
+    fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras/${id}/media`)
       .then(res => res.json())
       .then(data => {
         setMedia(data);

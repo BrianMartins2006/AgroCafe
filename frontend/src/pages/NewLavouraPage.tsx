@@ -18,7 +18,7 @@ const NewLavouraPage = () => {
 
   useEffect(() => {
     if (isEdit) {
-      fetch(`/api/v1/lavouras`)
+      fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras`)
         .then(res => res.json())
         .then(data => {
           const lavoura = data.find((l: any) => l.id === parseInt(id));
@@ -63,7 +63,7 @@ const NewLavouraPage = () => {
         }
       }
 
-      const response = await fetch(isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras', {
+      const response = await fetch((import.meta.env.VITE_API_URL || '') + (isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras'), {
         method: isEdit ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
