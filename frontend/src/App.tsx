@@ -11,9 +11,21 @@ import MaquinariosPage from './pages/MaquinariosPage';
 import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutos de cache "fresco"
+      gcTime: 1000 * 60 * 30,    // 30 minutos até o lixo ser coletado
+    },
+  },
+});
+
 function App() {
   return (
-    <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
       <Toaster 
         position="top-center" 
         toastOptions={{ 
@@ -37,7 +49,8 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
-  );
+  </QueryClientProvider>
+);
 }
 
 export default App;

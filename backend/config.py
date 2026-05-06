@@ -19,6 +19,8 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Configuração para upload de arquivos
-    import os
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app', 'static', 'uploads', 'atividades')
-    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # Limite máximo de 5MB
+    MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # Aumentando para 10MB para Cloudinary lidar
+    
+    # Cloudinary Integration
+    CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')

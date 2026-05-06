@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sprout, MessageSquarePlus, Settings, Search, Trash, MoreVertical, Pin, PinOff } from 'lucide-react';
 import Layout from '../components/Layout';
 
@@ -14,14 +15,40 @@ interface Lavoura {
   ultima_atividade_date?: string | null;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com';
+
 const LavourasPage = () => {
-  const [lavouras, setLavouras] = useState<Lavoura[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [selectedLavoura, setSelectedLavoura] = useState<Lavoura | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const navigate = useNavigate();
+
+  // Busca de dados com React Query
+  const { data: lavouras = [], isLoading: loading } = useQuery<Lavoura[]>({
+    queryKey: ['lavouras'],
+    queryFn: () => fetch(`${API_URL}/api/v1/lavouras`).then(res => res.json()),
+  });
+
+  // Mutação para Deletar
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => fetch(`${API_URL}/api/v1/lavouras/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lavouras'] });
+      setShowDeleteConfirm(false);
+      setSelectedLavoura(null);
+    },
+  });
+
+  // Mutação para Toggle Pin
+  const pinMutation = useMutation({
+    mutationFn: (id: number) => fetch(`${API_URL}/api/v1/lavouras/${id}/pin`, { method: 'PATCH' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lavouras'] });
+      setSelectedLavoura(null);
+    },
+  });
 
   // Hook para Long Press (Simplificado)
   const [longPressTimer, setLongPressTimer] = useState<any>(null);
@@ -37,68 +64,24 @@ const LavourasPage = () => {
     if (longPressTimer) clearTimeout(longPressTimer);
   };
 
-  const loadLavouras = () => {
-    setLoading(true);
-    fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + '/api/v1/lavouras')
-      .then(res => res.json())
-      .then(data => {
-        setLavouras(data || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Erro ao buscar lavouras:", err);
-        setLoading(false);
-      });
+  const handleDelete = () => {
+    if (selectedLavoura) deleteMutation.mutate(selectedLavoura.id);
   };
 
-  useEffect(() => {
-    loadLavouras();
-  }, []);
-
-  const handleDelete = async () => {
-    if (!selectedLavoura) return;
-    try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/lavouras/${selectedLavoura.id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        setShowDeleteConfirm(false);
-        setSelectedLavoura(null);
-        loadLavouras();
-      }
-    } catch (err) {
-      console.error("Erro ao excluir lavoura:", err);
-    }
-  };
-
-  const handleTogglePin = async (e: React.MouseEvent, lavoura: Lavoura) => {
+  const handleTogglePin = (e: React.MouseEvent, lavoura: Lavoura) => {
     e.stopPropagation();
-    try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + `/api/v1/lavouras/${lavoura.id}/pin`, {
-        method: 'PATCH'
-      });
-      if (res.ok) {
-        loadLavouras();
-        setSelectedLavoura(null);
-      }
-    } catch (err) {
-      console.error("Erro ao alternar fixação:", err);
-    }
+    pinMutation.mutate(lavoura.id);
   };
 
   // Lógica de Ordenação Híbrida (Igual ao WhatsApp)
   const sortedLavouras = [...lavouras].sort((a, b) => {
-    // 1. Pinned items primeiro
     if (a.is_pinned && !b.is_pinned) return -1;
     if (!a.is_pinned && b.is_pinned) return 1;
 
-    // 2. Depois por data da última atividade (mais recente primeiro)
     const dateA = a.ultima_atividade_date ? new Date(a.ultima_atividade_date).getTime() : 0;
     const dateB = b.ultima_atividade_date ? new Date(b.ultima_atividade_date).getTime() : 0;
     
     if (dateA !== dateB) return dateB - dateA;
-
-    // 3. Fallback para ID (mais novos primeiro)
     return b.id - a.id;
   });
 
@@ -225,7 +208,7 @@ const LavourasPage = () => {
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden animate-in slide-in-from-bottom-10 duration-300 shadow-2xl">
             <div className="p-8">
               <div className="flex items-center gap-5 mb-8">
-                <img src={selectedLavoura.foto_perfil?.startsWith('http') ? selectedLavoura.foto_perfil : (import.meta.env.VITE_API_URL || 'https://agrocafe-backend.onrender.com') + selectedLavoura.foto_perfil} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-gray-50 shadow-lg" />
+                <img src={selectedLavoura.foto_perfil?.startsWith('http') ? selectedLavoura.foto_perfil : (API_URL + selectedLavoura.foto_perfil)} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-gray-50 shadow-lg" />
                 <div>
                   <h3 className="font-black text-2xl text-gray-900 leading-tight">{selectedLavoura.nome}</h3>
                   <p className="text-gray-400 font-bold text-sm flex items-center gap-1 mt-1">
@@ -240,11 +223,11 @@ const LavourasPage = () => {
                   onClick={(e) => handleTogglePin(e, selectedLavoura)}
                   className="w-full flex items-center justify-center gap-3 bg-whatsapp-teal text-white py-4 rounded-2xl font-black shadow-xl shadow-whatsapp-teal/20 active:scale-95 transition-all text-lg"
                 >
-                  {selectedLavoura.is_pinned ? (
+                  {pinMutation.isPending ? "Processando..." : (selectedLavoura.is_pinned ? (
                     <><PinOff size={24} /> Desafixar Talhão</>
                   ) : (
                     <><Pin size={24} /> Fixar no Topo</>
-                  )}
+                  ))}
                 </button>
                 <button 
                   onClick={() => navigate(`/editar-lavoura/${selectedLavoura.id}`)}
@@ -286,9 +269,10 @@ const LavourasPage = () => {
               <div className="flex flex-col gap-4">
                 <button 
                   onClick={handleDelete}
-                  className="w-full bg-red-600 text-white py-5 rounded-[1.5rem] font-black shadow-2xl shadow-red-200 active:scale-95 transition-all text-xl"
+                  disabled={deleteMutation.isPending}
+                  className="w-full bg-red-600 text-white py-5 rounded-[1.5rem] font-black shadow-2xl shadow-red-200 active:scale-95 transition-all text-xl disabled:opacity-50"
                 >
-                  APAGAR TUDO
+                  {deleteMutation.isPending ? "APAGANDO..." : "APAGAR TUDO"}
                 </button>
                 <button 
                   onClick={() => setShowDeleteConfirm(false)}

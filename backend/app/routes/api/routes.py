@@ -4,6 +4,8 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import Lavoura, Atividade, TipoAtividade, AtividadeImagem, Funcionario, Maquinario, Usuario
+import cloudinary
+import cloudinary.uploader
 
 # O Blueprint para a nossa API
 api = Blueprint('api', __name__)
@@ -46,11 +48,18 @@ def update_perfil():
 
 @api.route('/lavouras', methods=['GET'])
 def get_lavouras():
-    lavouras = Lavoura.query.all()
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+    lavouras = Lavoura.query.filter_by(id_usuario_fk=user.id_usuario).all()
     return jsonify([l.to_dict() for l in lavouras])
 
 @api.route('/lavouras', methods=['POST'])
 def create_lavoura():
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+        
     data = request.json
     nova_lavoura = Lavoura(
         nome=data.get('nome'),
@@ -59,7 +68,7 @@ def create_lavoura():
         area_hectares=data.get('area_hectares'),
         localizacao=data.get('localizacao'),
         data_inicio=data.get('data_inicio'),
-        id_usuario_fk=data.get('id_usuario_fk')
+        id_usuario_fk=user.id_usuario
     )
     db.session.add(nova_lavoura)
     db.session.commit()
@@ -67,7 +76,13 @@ def create_lavoura():
 
 @api.route('/lavouras/<int:id>', methods=['PUT', 'DELETE'])
 def handle_lavoura_id(id):
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+        
     lavoura = Lavoura.query.get_or_404(id)
+    if lavoura.id_usuario_fk != user.id_usuario:
+        return jsonify({"erro": "Acesso negado"}), 403
     
     if request.method == 'PUT':
         data = request.json
@@ -90,11 +105,25 @@ def handle_lavoura_id(id):
 
 @api.route('/lavouras/<int:id>', methods=['GET'])
 def get_lavoura(id):
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+        
     lavoura = Lavoura.query.get_or_404(id)
+    if lavoura.id_usuario_fk != user.id_usuario:
+        return jsonify({"erro": "Acesso negado"}), 403
     return jsonify(lavoura.to_dict())
 
 @api.route('/lavouras/<int:id>/media', methods=['GET'])
 def get_lavoura_media(id):
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+        
+    lavoura = Lavoura.query.get_or_404(id)
+    if lavoura.id_usuario_fk != user.id_usuario:
+        return jsonify({"erro": "Acesso negado"}), 403
+        
     atividades = Atividade.query.filter_by(id_lavoura_fk=id).all()
     imagens = []
     for atv in atividades:
@@ -111,13 +140,28 @@ def get_lavoura_media(id):
 
 @api.route('/lavouras/<int:id>/pin', methods=['PATCH'])
 def toggle_lavoura_pin(id):
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+        
     lavoura = Lavoura.query.get_or_404(id)
+    if lavoura.id_usuario_fk != user.id_usuario:
+        return jsonify({"erro": "Acesso negado"}), 403
+        
     lavoura.is_pinned = not getattr(lavoura, 'is_pinned', False)
     db.session.commit()
     return jsonify(lavoura.to_dict())
 
 @api.route('/lavouras/<int:id>/atividades', methods=['GET'])
 def get_atividades_lavoura(id):
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+        
+    lavoura = Lavoura.query.get_or_404(id)
+    if lavoura.id_usuario_fk != user.id_usuario:
+        return jsonify({"erro": "Acesso negado"}), 403
+        
     atividades = Atividade.query.filter_by(id_lavoura_fk=id).order_by(Atividade.data.asc()).all()
     return jsonify([a.to_dict() for a in atividades])
 
@@ -127,7 +171,12 @@ from datetime import datetime
 
 @api.route('/feed', methods=['GET'])
 def get_global_feed():
-    atividades = Atividade.query.order_by(Atividade.data.desc()).all()
+    # Em um sistema multi-tenant, o feed global seria filtrado pelo id do usuário logado
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first() # Fallback para dev
+        
+    atividades = Atividade.query.join(Lavoura).filter(Lavoura.id_usuario_fk == user.id_usuario).order_by(Atividade.data.desc()).all()
     return jsonify([a.to_dict() for a in atividades])
 
 @api.route('/atividades', methods=['POST'])
@@ -243,20 +292,23 @@ def upload_file():
         return jsonify({"erro": "Nome do arquivo vazio"}), 400
     
     if file:
-        filename = secure_filename(file.filename)
-        # Adicionar timestamp para evitar conflitos de nomes
-        import time
-        filename = f"{int(time.time())}_{filename}"
-        
-        upload_path = current_app.config['UPLOAD_FOLDER']
-        if not os.path.exists(upload_path):
-            os.makedirs(upload_path)
+        try:
+            # Configurar Cloudinary (pode ser feito no init do app também)
+            cloudinary.config(cloudinary_url=current_app.config.get('CLOUDINARY_URL'))
             
-        file.save(os.path.join(upload_path, filename))
-        
-        # URL pública para o frontend
-        file_url = f"/static/uploads/atividades/{filename}"
-        return jsonify({"url": file_url}), 201
+            # Upload para o Cloudinary
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder="agrocafé/atividades",
+                resource_type="auto"
+            )
+            
+            # Retorna a URL segura (HTTPS) do Cloudinary
+            return jsonify({"url": upload_result.get('secure_url')}), 201
+            
+        except Exception as e:
+            print(f"Erro no upload Cloudinary: {str(e)}")
+            return jsonify({"erro": "Falha ao enviar para nuvem"}), 500
 
 @api.route('/tipos-atividade', methods=['POST'])
 def create_tipo_atividade():
@@ -300,7 +352,14 @@ def get_tipos_atividade():
 
 @api.route('/funcionarios', methods=['GET'])
 def get_funcionarios():
-    funcionarios = Funcionario.query.all()
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+    # Funcionários não tem id_usuario_fk no schema que vi, 
+    # mas vamos assumir que queremos isolar por usuário se o model permitir.
+    # Se não houver o campo, por enquanto mantemos .all() ou filtramos por algo.
+    # TODO: Adicionar id_usuario_fk no modelo de Funcionario
+    funcionarios = Funcionario.query.all() 
     return jsonify([f.to_dict() for f in funcionarios])
 
 @api.route('/funcionarios', methods=['POST'])
@@ -336,6 +395,10 @@ def handle_funcionario(id):
 
 @api.route('/maquinarios', methods=['GET'])
 def get_maquinarios():
+    user = current_user
+    if not user.is_authenticated:
+        user = Usuario.query.first()
+    # Mesma lógica para maquinários
     maquinas = Maquinario.query.all()
     return jsonify([m.to_dict() for m in maquinas])
 
