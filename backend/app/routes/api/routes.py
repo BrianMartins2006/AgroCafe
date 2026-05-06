@@ -10,6 +10,27 @@ import cloudinary.uploader
 # O Blueprint para a nossa API
 api = Blueprint('api', __name__)
 
+# --- Rotas de Usuários ---
+
+@api.route('/usuarios', methods=['POST'])
+def create_usuario():
+    data = request.json
+    if not data or not data.get('nome'):
+        return jsonify({"erro": "Nome é obrigatório"}), 400
+        
+    novo_usuario = Usuario(
+        nome=data.get('nome'),
+        email=data.get('email', f"{data.get('nome').lower()}@agrocafe.com"),
+        foto_url=data.get('foto_url')
+    )
+    # Senha padrão para onboarding
+    novo_usuario.set_password("admin123")
+    
+    db.session.add(novo_usuario)
+    db.session.commit()
+    
+    return jsonify(novo_usuario.to_dict()), 201
+
 # --- Rotas de Perfil ---
 
 @api.route('/perfil', methods=['GET'])

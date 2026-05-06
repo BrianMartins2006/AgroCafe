@@ -10,6 +10,7 @@ import FuncionariosPage from './pages/FuncionariosPage';
 import MaquinariosPage from './pages/MaquinariosPage';
 import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
+import WelcomePage from './pages/WelcomePage';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -23,19 +24,31 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const isOnboarded = localStorage.getItem('onboarding_complete') === 'true';
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-      <Toaster 
-        position="top-center" 
-        toastOptions={{ 
-          className: 'text-sm font-bold',
-          duration: 3000,
-          style: { borderRadius: '20px', padding: '16px' }
-        }} 
-      />
-      <Routes>
-        <Route path="/" element={<LavourasPage />} />
+        <Toaster 
+          position="top-center" 
+          toastOptions={{ 
+            className: 'text-sm font-bold',
+            duration: 3000,
+            style: { borderRadius: '20px', padding: '16px' }
+          }} 
+        />
+        <Routes>
+          {/* Onboarding Flow */}
+          {!isOnboarded && (
+            <>
+              <Route path="/welcome" element={<WelcomePage />} />
+              <Route path="*" element={<Navigate to="/welcome" replace />} />
+            </>
+          )}
+
+          {/* Main App Routes */}
+          <Route path="/" element={<LavourasPage />} />
+          <Route path="/welcome" element={<WelcomePage />} />
         <Route path="/chat/:id" element={<ChatPage />} />
         <Route path="/atividades" element={<ActivitiesPage />} />
         <Route path="/lavoura/:id/perfil" element={<LavouraProfilePage />} />
