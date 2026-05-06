@@ -56,9 +56,16 @@ def get_lavouras():
 
 @api.route('/lavouras', methods=['POST'])
 def create_lavoura():
+    # Garante que existe pelo menos um usuário no sistema para ser o "dono"
     user = current_user
     if not user.is_authenticated:
         user = Usuario.query.first()
+        if not user:
+            # Se não existir nenhum usuário, cria um padrão para não dar erro 500
+            user = Usuario(nome="Produtor Padrão", email="admin@agrocafe.com")
+            user.set_password("admin123")
+            db.session.add(user)
+            db.session.commit()
         
     data = request.json
     nova_lavoura = Lavoura(
