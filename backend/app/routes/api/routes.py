@@ -321,8 +321,12 @@ def upload_file():
     
     if file:
         try:
-            # Configurar Cloudinary (pode ser feito no init do app também)
-            cloudinary.config(cloudinary_url=current_app.config.get('CLOUDINARY_URL'))
+            # Configurar Cloudinary usando a URL do ambiente
+            cloudinary_config = current_app.config.get('CLOUDINARY_URL')
+            if not cloudinary_config:
+                return jsonify({"erro": "Configuração Cloudinary ausente no servidor"}), 500
+                
+            cloudinary.config(from_url=cloudinary_config)
             
             # Upload para o Cloudinary
             upload_result = cloudinary.uploader.upload(
@@ -336,7 +340,7 @@ def upload_file():
             
         except Exception as e:
             print(f"Erro no upload Cloudinary: {str(e)}")
-            return jsonify({"erro": "Falha ao enviar para nuvem"}), 500
+            return jsonify({"erro": f"Erro Cloudinary: {str(e)}"}), 500
 
 @api.route('/tipos-atividade', methods=['POST'])
 def create_tipo_atividade():
