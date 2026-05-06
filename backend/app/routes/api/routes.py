@@ -14,22 +14,30 @@ api = Blueprint('api', __name__)
 
 @api.route('/usuarios', methods=['POST'])
 def create_usuario():
-    data = request.json
-    if not data or not data.get('nome'):
-        return jsonify({"erro": "Nome é obrigatório"}), 400
+    try:
+        data = request.json
+        if not data or not data.get('nome'):
+            return jsonify({"erro": "Nome é obrigatório"}), 400
+            
+        # Verifica se já existe um usuário com esse e-mail
+        email = data.get('email', f"{data.get('nome').lower().replace(' ', '')}@agrocafe.com")
+        existente = Usuario.query.filter_by(email=email).first()
+        if existente:
+            return jsonify(existente.to_dict()), 200
+            
+        novo_usuario = Usuario(
+            nome=data.get('nome'),
+            email=email,
+            foto_url=data.get('foto_url')
+        )
+        novo_usuario.set_password("admin123")
         
-    novo_usuario = Usuario(
-        nome=data.get('nome'),
-        email=data.get('email', f"{data.get('nome').lower()}@agrocafe.com"),
-        foto_url=data.get('foto_url')
-    )
-    # Senha padrão para onboarding
-    novo_usuario.set_password("admin123")
-    
-    db.session.add(novo_usuario)
-    db.session.commit()
-    
-    return jsonify(novo_usuario.to_dict()), 201
+        db.session.add(novo_usuario)
+        db.session.commit()
+        return jsonify(novo_usuario.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"erro": str(e)}), 500
 
 # --- Rotas de Perfil ---
 
@@ -331,7 +339,7 @@ def upload_file():
             # Upload para o Cloudinary
             upload_result = cloudinary.uploader.upload(
                 file,
-                folder="agrocafé/atividades",
+                folder="agrocafe/atividades",
                 resource_type="auto"
             )
             
