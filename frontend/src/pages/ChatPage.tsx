@@ -10,8 +10,12 @@ import {
 import Layout from '../components/Layout';
 import MediaPicker from '../components/MediaPicker';
 import { useDraggableScroll } from '../hooks/useDraggableScroll';
+import { api } from '../services/api';
+import { compressImage } from '../utils/imageCompression';
+import { Clock, Check as CheckIcon } from 'lucide-react';
+import { getMediaUrl } from '../utils/media';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+
 
 const ICONS_MAP: any = {
   'Sprout': Sprout,
@@ -56,24 +60,24 @@ const ChatPage = () => {
   // Queries (Persistence habilitada no App.tsx)
   const { data: lavouras = [] } = useQuery({
     queryKey: ['lavouras'],
-    queryFn: () => fetch(`${API_URL}/api/v1/lavouras`).then(res => res.json())
+    queryFn: () => api.get('/api/v1/lavouras').then(res => res.json())
   });
   
   const lavoura = lavouras.find((l: any) => l.id === Number(id));
 
   const { data: tipos = [] } = useQuery({
     queryKey: ['tipos-atividade'],
-    queryFn: () => fetch(`${API_URL}/api/v1/tipos-atividade`).then(res => res.json()),
+    queryFn: () => api.get('/api/v1/tipos-atividade').then(res => res.json()),
   });
 
   const { data: funcionarios = [] } = useQuery({
     queryKey: ['funcionarios'],
-    queryFn: () => fetch(`${API_URL}/api/v1/funcionarios`).then(res => res.json())
+    queryFn: () => api.get('/api/v1/funcionarios').then(res => res.json())
   });
 
   const { data: atividades = [], isLoading, isFetching } = useQuery({
     queryKey: ['atividades', id],
-    queryFn: () => fetch(`${API_URL}/api/v1/lavouras/${id}/atividades`).then(res => res.json()),
+    queryFn: () => api.get(`/api/v1/lavouras/${id}/atividades`).then(res => res.json()),
     enabled: !!id
   });
 
@@ -86,12 +90,32 @@ const ChatPage = () => {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (newData: any) => fetch(`${API_URL}/api/v1/atividades`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...newData, id_lavoura: Number(id) })
-    }),
-    onSuccess: () => {
+    mutationFn: (newData: any) => api.post('/api/v1/atividades', { ...newData, id_lavoura: Number(id) }),
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['atividades', id] });
+      const previousAtividades = queryClient.getQueryData(['atividades', id]);
+
+      // Adiciona atividade otimista
+      const optimisticAtv = {
+        id: Date.now(), // ID temporário
+        ...newData,
+        id_lavoura: Number(id),
+        tipo: tipos.find((t: any) => t.id === newData.id_tipo_atividade),
+        imagens: newData.fotos.map((url: string) => ({ id: Math.random(), foto_url: url })),
+        status: 'pending' // Flag para UI
+      };
+
+      queryClient.setQueryData(['atividades', id], (old: any) => [...(old || []), optimisticAtv]);
+
+      return { previousAtividades };
+    },
+    onError: (_err, _newData, context: any) => {
+      queryClient.setQueryData(['atividades', id], context.previousAtividades);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['atividades', id] });
+    },
+    onSuccess: () => {
       setNewAtvForm({ 
         descricao: '', 
         id_tipo_atividade: tipos[0]?.id || 0, 
@@ -104,15 +128,12 @@ const ChatPage = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (atv: any) => fetch(`${API_URL}/api/v1/atividades/${atv.id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        descricao: atv.descricao,
-        id_tipo_atividade: atv.tipo.id,
-        responsavel: atv.responsavel,
-        data: atv.data,
-        fotos: atv.imagens.map((img: any) => img.foto_url)
-      })
+    mutationFn: (atv: any) => api.put(`/api/v1/atividades/${atv.id}`, {
+      descricao: atv.descricao,
+      id_tipo_atividade: atv.tipo.id,
+      responsavel: atv.responsavel,
+      data: atv.data,
+      fotos: atv.imagens.map((img: any) => img.foto_url)
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['atividades', id] });
@@ -121,7 +142,7 @@ const ChatPage = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (atvId: number) => fetch(`${API_URL}/api/v1/atividades/${atvId}`, { method: 'DELETE' }),
+    mutationFn: (atvId: number) => api.delete(`/api/v1/atividades/${atvId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['atividades', id] });
       setDeletingId(null);
@@ -129,7 +150,7 @@ const ChatPage = () => {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: (formData: FormData) => fetch(`${API_URL}/api/v1/upload`, { method: 'POST', body: formData }).then(res => res.json()),
+    mutationFn: (formData: FormData) => api.post('/api/v1/upload', formData).then(res => res.json()),
   });
 
   // Scroll Automático
@@ -150,8 +171,9 @@ const ChatPage = () => {
     const isEdit = !!editingAtv;
 
     for (const file of files) {
+      const compressed = await compressImage(file);
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', compressed);
       const data = await uploadMutation.mutateAsync(formData);
       
       if (data.url) {
@@ -267,15 +289,22 @@ const ChatPage = () => {
                     {atv.imagens.map((img: any) => (
                       <img 
                         key={img.id} 
-                        src={img.foto_url ? (img.foto_url.startsWith('http') ? img.foto_url : (API_URL + img.foto_url)) : ""} 
+                        src={getMediaUrl(img.foto_url)} 
                         loading="lazy"
                         className="w-full h-32 object-cover cursor-pointer active:scale-95 transition-all" 
-                        onClick={() => setLightboxImage(img.foto_url.startsWith('http') ? img.foto_url : (API_URL + img.foto_url))} 
+                        onClick={() => setLightboxImage(img.foto_url)} 
                       />
                     ))}
                   </div>
                 )}
-                <div className="text-[9px] text-gray-400 font-bold mt-1 text-right italic">{new Date(atv.data).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                <div className="flex items-center justify-end gap-1 mt-1">
+                  <div className="text-[9px] text-gray-400 font-bold italic">{new Date(atv.data).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                  {atv.status === 'pending' ? (
+                    <Clock size={10} className="text-gray-400 animate-pulse" />
+                  ) : (
+                    <CheckIcon size={10} className="text-whatsapp-teal" />
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -322,7 +351,7 @@ const ChatPage = () => {
               <div className="bg-whatsapp-teal p-6 text-white flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <img 
-                    src={lavoura?.foto_perfil ? (lavoura.foto_perfil.startsWith('http') ? lavoura.foto_perfil : (API_URL + lavoura.foto_perfil)) : "/images/default-lavoura.jpg"} 
+                    src={lavoura?.foto_perfil} 
                     className="w-10 h-10 rounded-full border-2 border-white/20 object-cover" 
                     alt="" 
                   />
@@ -413,7 +442,7 @@ const ChatPage = () => {
                <div className="bg-whatsapp-teal p-6 text-white flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <img 
-                      src={lavoura?.foto_perfil ? (lavoura.foto_perfil.startsWith('http') ? lavoura.foto_perfil : (API_URL + lavoura.foto_perfil)) : "/images/default-lavoura.jpg"} 
+                      src={getMediaUrl(lavoura?.foto_perfil)} 
                       className="w-10 h-10 rounded-full border-2 border-white/20 object-cover" 
                       alt="" 
                     />
@@ -430,7 +459,7 @@ const ChatPage = () => {
                  <div className="grid grid-cols-3 gap-2">
                    {editingAtv.imagens.map((img: any, idx: number) => (
                      <div key={img.id || idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm">
-                       <img src={img.foto_url.startsWith('http') ? img.foto_url : (API_URL + img.foto_url)} className="w-full h-full object-cover" />
+                       <img src={getMediaUrl(img.foto_url)} className="w-full h-full object-cover" />
                        <button 
                          onClick={() => setEditingAtv({
                            ...editingAtv, 

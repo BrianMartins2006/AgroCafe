@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Calendar, MapPin, Sprout, Image as ImageIcon, ChevronRight, X } from 'lucide-react';
+import { api } from '../services/api';
+import { getMediaUrl } from '../utils/media';
 
 
 interface Lavoura {
@@ -29,23 +31,22 @@ const LavouraProfilePage = () => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Buscar detalhes da lavoura
-    fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras/${id}`)
-      .then(res => res.json())
-      .then(data => setLavoura(data))
-      .catch(err => console.error("Erro ao buscar lavoura:", err));
-
-    // Buscar mídia da lavoura
-    fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/lavouras/${id}/media`)
-      .then(res => res.json())
-      .then(data => {
-        setMedia(data);
+    const loadData = async () => {
+      try {
+        const [lavouraRes, mediaRes] = await Promise.all([
+          api.get(`/api/v1/lavouras/${id}`),
+          api.get(`/api/v1/lavouras/${id}/media`)
+        ]);
+        
+        setLavoura(await lavouraRes.json());
+        setMedia(await mediaRes.json());
+      } catch (err) {
+        console.error("Erro ao carregar perfil da lavoura:", err);
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        console.error("Erro ao buscar mídia:", err);
-        setLoading(false);
-      });
+      }
+    };
+    loadData();
   }, [id]);
 
   if (loading && !lavoura) {
@@ -68,7 +69,7 @@ const LavouraProfilePage = () => {
         
         <div className="h-64 sm:h-80 overflow-hidden relative group">
           <img 
-            src={lavoura?.foto_perfil ? (lavoura.foto_perfil.startsWith('http') ? lavoura.foto_perfil : (import.meta.env.VITE_API_URL || '') + lavoura.foto_perfil) : "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=800&q=80"} 
+            src={getMediaUrl(lavoura?.foto_perfil)} 
             alt={lavoura?.nome}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
@@ -140,7 +141,7 @@ const LavouraProfilePage = () => {
                   className="aspect-square rounded-lg overflow-hidden border border-gray-50 cursor-pointer hover:opacity-80 transition-opacity relative group"
                 >
                   <img 
-                    src={item.foto_url?.startsWith('http') ? item.foto_url : (import.meta.env.VITE_API_URL || '') + item.foto_url} 
+                    src={getMediaUrl(item.foto_url)} 
                     alt="Mídia" 
                     className="w-full h-full object-cover" 
                   />

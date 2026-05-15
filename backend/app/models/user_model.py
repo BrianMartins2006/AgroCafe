@@ -18,6 +18,8 @@ class Usuario(db.Model, UserMixin):
     senha_hash = db.Column(db.String(255), nullable=False)
     ativo = db.Column(db.Boolean, default=True)
     foto_url = db.Column(db.String(255))
+    pergunta_seguranca = db.Column(db.String(255))
+    resposta_hash = db.Column(db.String(255))
     
     permissoes = db.relationship(
         'Permissao', secondary=usuario_permissao, 
@@ -33,6 +35,16 @@ class Usuario(db.Model, UserMixin):
         """Verifica se a senha fornecida corresponde ao hash."""
         return check_password_hash(self.senha_hash, password)
 
+    def set_security_answer(self, answer):
+        """Define a resposta da pergunta de segurança criptografada."""
+        self.resposta_hash = generate_password_hash(answer.lower().strip())
+
+    def check_security_answer(self, answer):
+        """Verifica se a resposta fornecida corresponde ao hash."""
+        if not self.resposta_hash:
+            return False
+        return check_password_hash(self.resposta_hash, answer.lower().strip())
+
     def get_id(self):
         return str(self.id)
     
@@ -43,6 +55,7 @@ class Usuario(db.Model, UserMixin):
             'email': self.email,
             'ativo': self.ativo,
             'foto_url': self.foto_url,
+            'pergunta_seguranca': self.pergunta_seguranca
         }
         if include_permissoes:
             data['permissoes'] = [p.nome for p in self.permissoes]

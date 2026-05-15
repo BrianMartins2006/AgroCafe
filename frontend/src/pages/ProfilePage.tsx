@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Lock, Camera, Check } from 'lucide-react';
+import { User, Mail, Lock, Camera, Check, Eye, EyeOff, X } from 'lucide-react';
 import Layout from '../components/Layout';
 import MediaPicker from '../components/MediaPicker';
+import { api } from '../services/api';
+import { getMediaUrl } from '../utils/media';
 
 interface UserProfile {
   id_usuario: number;
@@ -16,15 +18,17 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   
   const [form, setForm] = useState({
     nome: '',
     email: '',
     senha: ''
   });
+  const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
-    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/perfil')
+    api.get('/api/v1/perfil')
       .then(res => res.json())
       .then(data => {
         setProfile(data);
@@ -50,18 +54,11 @@ const ProfilePage = () => {
 
     try {
       setSaving(true);
-      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/upload', {
-        method: 'POST',
-        body: formData
-      });
+      const res = await api.post('/api/v1/upload', formData);
 
       if (res.ok) {
         const data = await res.json();
-        const updateRes = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/perfil', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...form, foto_url: data.url })
-        });
+        const updateRes = await api.put('/api/v1/perfil', { ...form, foto_url: data.url });
 
         if (updateRes.ok) {
           const updated = await updateRes.json();
@@ -83,11 +80,7 @@ const ProfilePage = () => {
     setSuccess(false);
     
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/perfil', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, foto_url: profile?.foto_url })
-      });
+      const res = await api.put('/api/v1/perfil', { ...form, foto_url: profile?.foto_url });
       
       if (res.ok) {
         const updated = await res.json();
@@ -108,9 +101,12 @@ const ProfilePage = () => {
         {/* Profile Header (WhatsApp Style) */}
         <div className="bg-white p-8 flex flex-col items-center border-b border-gray-100 shadow-sm">
           <div className="relative group">
-            <div className="w-40 h-40 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-gray-50 shadow-xl">
+            <div 
+              onClick={() => profile?.foto_url && setLightboxImage(getMediaUrl(profile.foto_url))}
+              className="w-40 h-40 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-gray-50 shadow-xl cursor-pointer active:scale-95 transition-all"
+            >
               {profile?.foto_url ? (
-                <img src={profile.foto_url?.startsWith('http') ? profile.foto_url : (import.meta.env.VITE_API_URL || '') + profile.foto_url} alt="Profile" className="w-full h-full object-cover" />
+                <img src={getMediaUrl(profile.foto_url)} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <User size={80} className="text-gray-300" />
               )}
@@ -163,12 +159,19 @@ const ProfilePage = () => {
                 <div className="relative">
                   <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input 
-                    type="password" 
+                    type={showPass ? "text" : "password"} 
                     value={form.senha}
                     onChange={e => setForm({...form, senha: e.target.value})}
                     placeholder="Deixe em branco para manter"
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-whatsapp-teal transition-all text-gray-800 font-medium"
+                    className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-whatsapp-teal transition-all text-gray-800 font-medium"
                   />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPass(!showPass)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-whatsapp-teal transition-colors"
+                  >
+                    {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
             </div>
@@ -194,6 +197,29 @@ const ProfilePage = () => {
           <p className="text-center text-[10px] text-gray-300 mt-8 font-black uppercase tracking-widest">AgroCafé • Segurança de Dados</p>
         </div>
       </div>
+      {/* Lightbox Style WhatsApp */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black z-[200] flex flex-col animate-in fade-in duration-200"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="p-4 flex items-center justify-between text-white bg-black/40 backdrop-blur-md absolute top-0 left-0 right-0 z-10">
+            <div className="flex items-center gap-3">
+              <span className="font-bold">{profile?.nome}</span>
+            </div>
+            <button onClick={() => setLightboxImage(null)} className="p-2"><X size={24} /></button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-2">
+            <img 
+              src={lightboxImage} 
+              alt="" 
+              className="max-w-full max-h-[80vh] object-contain shadow-2xl animate-in zoom-in-95 duration-300" 
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Seletor de Mídia */}
       <MediaPicker 
         isOpen={showMediaPicker}

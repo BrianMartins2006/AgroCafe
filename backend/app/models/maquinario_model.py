@@ -13,6 +13,7 @@ class Maquinario(db.Model):
     data_aquisicao = db.Column(db.Date)
     valor_hora = db.Column(db.Numeric(10, 2))
     consumo_medio = db.Column(db.Numeric(10, 2))
+    id_usuario_fk = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'), nullable=True)
 
     def to_dict(self):
         return {
@@ -20,7 +21,8 @@ class Maquinario(db.Model):
             'tipo': self.tipo,
             'modelo': self.modelo,
             'valor_hora': float(self.valor_hora) if self.valor_hora else 0,
-            'consumo_medio': float(self.consumo_medio) if self.consumo_medio else 0
+            'consumo_medio': float(self.consumo_medio) if self.consumo_medio else 0,
+            'id_usuario_fk': self.id_usuario_fk
         }
 
     def __repr__(self):

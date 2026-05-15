@@ -11,6 +11,8 @@ import MaquinariosPage from './pages/MaquinariosPage';
 import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
 import WelcomePage from './pages/WelcomePage';
+import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
@@ -22,6 +24,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutos de cache "fresco"
       gcTime: 1000 * 60 * 60 * 24, // 24 horas até o lixo ser coletado do cache (persistente)
+      retry: false, // Evita loop de retentativas se der 401
     },
   },
 });
@@ -48,37 +51,39 @@ function App() {
           position="top-center" 
           toastOptions={{ 
             className: 'text-sm font-bold',
-            duration: 3000,
-            style: { borderRadius: '20px', padding: '16px' }
+            duration: 2000,
+            style: { borderRadius: '20px', padding: '16px', zIndex: 9999 }
           }} 
         />
         <Routes>
-          {/* Onboarding Flow */}
-          {!isOnboarded && (
+          {/* Public / Onboarding Routes */}
+          <Route path="/welcome" element={<WelcomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+          {!isOnboarded ? (
+            <Route path="*" element={<Navigate to="/welcome" replace />} />
+          ) : (
             <>
-              <Route path="/welcome" element={<WelcomePage />} />
-              <Route path="*" element={<Navigate to="/welcome" replace />} />
+              {/* Private App Routes */}
+              <Route path="/" element={<LavourasPage />} />
+              <Route path="/chat/:id" element={<ChatPage />} />
+              <Route path="/atividades" element={<ActivitiesPage />} />
+              <Route path="/lavoura/:id/perfil" element={<LavouraProfilePage />} />
+              <Route path="/configuracoes" element={<SettingsPage />} />
+              <Route path="/funcionarios" element={<FuncionariosPage />} />
+              <Route path="/maquinarios" element={<MaquinariosPage />} />
+              <Route path="/perfil" element={<ProfilePage />} />
+              <Route path="/nova-lavoura" element={<NewLavouraPage />} />
+              <Route path="/editar-lavoura/:id" element={<NewLavouraPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </>
           )}
-
-          {/* Main App Routes */}
-          <Route path="/" element={<LavourasPage />} />
-          <Route path="/welcome" element={<WelcomePage />} />
-        <Route path="/chat/:id" element={<ChatPage />} />
-        <Route path="/atividades" element={<ActivitiesPage />} />
-        <Route path="/lavoura/:id/perfil" element={<LavouraProfilePage />} />
-        <Route path="/configuracoes" element={<SettingsPage />} />
-        <Route path="/funcionarios" element={<FuncionariosPage />} />
-        <Route path="/maquinarios" element={<MaquinariosPage />} />
-        <Route path="/perfil" element={<ProfilePage />} />
-        <Route path="/nova-lavoura" element={<NewLavouraPage />} />
-        <Route path="/editar-lavoura/:id" element={<NewLavouraPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
     </PersistQueryClientProvider>
-);
+  );
 }
 
 export default App;

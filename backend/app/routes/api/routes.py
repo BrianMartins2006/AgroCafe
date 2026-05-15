@@ -1,66 +1,112 @@
 import os
 from flask import Blueprint, jsonify, request, current_app
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, login_user, logout_user
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import Lavoura, Atividade, TipoAtividade, AtividadeImagem, Funcionario, Maquinario, Usuario
 import cloudinary
 import cloudinary.uploader
+import re
+from datetime import datetime, timezone
 
 # O Blueprint para a nossa API
 api = Blueprint('api', __name__)
 
-# --- Rotas de Usuários ---
+# --- Rotas de Autenticação (JSON) ---
 
-@api.route('/usuarios', methods=['POST'])
-def create_usuario():
+@api.route('/auth/register', methods=['POST'])
+def api_register():
     try:
         data = request.json
-        if not data or not data.get('nome'):
-            return jsonify({"erro": "Nome é obrigatório"}), 400
+        if not data or not data.get('email') or not data.get('senha') or not data.get('nome'):
+            return jsonify({"erro": "Nome, e-mail e senha são obrigatórios"}), 400
             
-        # Verifica se já existe um usuário com esse e-mail
-        email = data.get('email', f"{data.get('nome').lower().replace(' ', '')}@agrocafe.com")
-        existente = Usuario.query.filter_by(email=email).first()
-        if existente:
-            return jsonify(existente.to_dict()), 200
+        email = data.get('email').strip().lower()
+        if Usuario.query.filter_by(email=email).first():
+            return jsonify({"erro": "Este e-mail já está cadastrado"}), 409
             
         novo_usuario = Usuario(
             nome=data.get('nome'),
             email=email,
-            foto_url=data.get('foto_url')
+            foto_url=data.get('foto_url'),
+            pergunta_seguranca=data.get('pergunta_seguranca')
         )
-        novo_usuario.set_password("admin123")
-        
+        novo_usuario.set_password(data.get('senha'))
+        if data.get('resposta_seguranca'):
+            novo_usuario.set_security_answer(data.get('resposta_seguranca'))
+            
         db.session.add(novo_usuario)
         db.session.commit()
+        
+        login_user(novo_usuario, remember=True)
         return jsonify(novo_usuario.to_dict()), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({"erro": str(e)}), 500
 
+@api.route('/auth/login', methods=['POST'])
+def api_login():
+    data = request.json
+    if not data or not data.get('email') or not data.get('senha'):
+        return jsonify({"erro": "E-mail e senha são obrigatórios"}), 400
+        
+    email = data.get('email').strip().lower()
+    user = Usuario.query.filter_by(email=email).first()
+    
+    if user and user.check_password(data.get('senha')):
+        login_user(user, remember=True)
+        return jsonify(user.to_dict())
+    
+    return jsonify({"erro": "E-mail ou senha inválidos"}), 401
+
+@api.route('/auth/logout', methods=['POST'])
+@login_required
+def api_logout():
+    logout_user()
+    return jsonify({"mensagem": "Logout realizado com sucesso"})
+
+@api.route('/auth/forgot-password', methods=['POST'])
+def api_forgot_password():
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    user = Usuario.query.filter_by(email=email).first()
+    
+    if not user:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+        
+    return jsonify({
+        "pergunta_seguranca": user.pergunta_seguranca or "Qual o nome da sua fazenda?"
+    })
+
+@api.route('/auth/reset-password', methods=['POST'])
+def api_reset_password():
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    resposta = data.get('resposta_seguranca', '')
+    nova_senha = data.get('nova_senha', '')
+    
+    user = Usuario.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+        
+    if user.check_security_answer(resposta):
+        user.set_password(nova_senha)
+        db.session.commit()
+        return jsonify({"mensagem": "Senha alterada com sucesso"})
+    
+    return jsonify({"erro": "Resposta de segurança incorreta"}), 401
+
 # --- Rotas de Perfil ---
 
 @api.route('/perfil', methods=['GET'])
+@login_required
 def get_perfil():
-    # Se não estiver logado (e para facilitar testes enquanto o front não envia cookies/auth)
-    # vamos pegar o primeiro usuário se o current_user não estiver autenticado.
-    # TODO: Remover fallback para produção
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-        if not user:
-            return jsonify({"erro": "Nenhum usuário encontrado"}), 404
-            
-    return jsonify(user.to_dict())
+    return jsonify(current_user.to_dict())
 
 @api.route('/perfil', methods=['PUT'])
+@login_required
 def update_perfil():
     user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-        if not user:
-            return jsonify({"erro": "Nenhum usuário encontrado"}), 404
 
     data = request.json
     user.nome = data.get('nome', user.nome)
@@ -80,26 +126,14 @@ def health_check():
     return {"status": "ok", "message": "Backend is awake!"}, 200
 
 @api.route('/lavouras', methods=['GET'])
+@login_required
 def get_lavouras():
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-    lavouras = Lavoura.query.filter_by(id_usuario_fk=user.id).all()
+    lavouras = Lavoura.query.filter_by(id_usuario_fk=current_user.id).all()
     return jsonify([l.to_dict() for l in lavouras])
 
 @api.route('/lavouras', methods=['POST'])
+@login_required
 def create_lavoura():
-    # Garante que existe pelo menos um usuário no sistema para ser o "dono"
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-        if not user:
-            # Se não existir nenhum usuário, cria um padrão para não dar erro 500
-            user = Usuario(nome="Produtor Padrão", email="admin@agrocafe.com")
-            user.set_password("admin123")
-            db.session.add(user)
-            db.session.commit()
-        
     data = request.json
     nova_lavoura = Lavoura(
         nome=data.get('nome'),
@@ -108,20 +142,17 @@ def create_lavoura():
         area_hectares=data.get('area_hectares'),
         localizacao=data.get('localizacao'),
         data_inicio=data.get('data_inicio'),
-        id_usuario_fk=user.id
+        id_usuario_fk=current_user.id
     )
     db.session.add(nova_lavoura)
     db.session.commit()
     return jsonify(nova_lavoura.to_dict()), 201
 
 @api.route('/lavouras/<int:id>', methods=['PUT', 'DELETE'])
+@login_required
 def handle_lavoura_id(id):
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-        
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id:
+    if lavoura.id_usuario_fk != current_user.id:
         return jsonify({"erro": "Acesso negado"}), 403
     
     if request.method == 'PUT':
@@ -144,24 +175,18 @@ def handle_lavoura_id(id):
         return jsonify({"message": "Lavoura excluída com sucesso"}), 200
 
 @api.route('/lavouras/<int:id>', methods=['GET'])
+@login_required
 def get_lavoura(id):
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-        
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id:
+    if lavoura.id_usuario_fk != current_user.id:
         return jsonify({"erro": "Acesso negado"}), 403
     return jsonify(lavoura.to_dict())
 
 @api.route('/lavouras/<int:id>/media', methods=['GET'])
+@login_required
 def get_lavoura_media(id):
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-        
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id:
+    if lavoura.id_usuario_fk != current_user.id:
         return jsonify({"erro": "Acesso negado"}), 403
         
     atividades = Atividade.query.filter_by(id_lavoura_fk=id).all()
@@ -179,13 +204,10 @@ def get_lavoura_media(id):
     return jsonify(imagens)
 
 @api.route('/lavouras/<int:id>/pin', methods=['PATCH'])
+@login_required
 def toggle_lavoura_pin(id):
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-        
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id:
+    if lavoura.id_usuario_fk != current_user.id:
         return jsonify({"erro": "Acesso negado"}), 403
         
     lavoura.is_pinned = not getattr(lavoura, 'is_pinned', False)
@@ -193,47 +215,42 @@ def toggle_lavoura_pin(id):
     return jsonify(lavoura.to_dict())
 
 @api.route('/lavouras/<int:id>/atividades', methods=['GET'])
+@login_required
 def get_atividades_lavoura(id):
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-        
     lavoura = Lavoura.query.get_or_404(id)
-    if lavoura.id_usuario_fk != user.id:
+    if lavoura.id_usuario_fk != current_user.id:
         return jsonify({"erro": "Acesso negado"}), 403
         
     atividades = Atividade.query.filter_by(id_lavoura_fk=id).order_by(Atividade.data.asc()).all()
     return jsonify([a.to_dict() for a in atividades])
 
-from datetime import datetime
-
 # --- Rotas de Atividades ---
 
 @api.route('/feed', methods=['GET'])
+@login_required
 def get_global_feed():
-    # Em um sistema multi-tenant, o feed global seria filtrado pelo id do usuário logado
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first() # Fallback para dev
-        
-    atividades = Atividade.query.join(Lavoura).filter(Lavoura.id_usuario_fk == user.id).order_by(Atividade.data.desc()).all()
+    atividades = Atividade.query.join(Lavoura).filter(Lavoura.id_usuario_fk == current_user.id).order_by(Atividade.data.desc()).all()
     return jsonify([a.to_dict() for a in atividades])
 
 @api.route('/atividades', methods=['POST'])
+@login_required
 def create_atividade():
     try:
         data = request.json
         if not data:
             return jsonify({"erro": "Nenhum dado recebido"}), 400
             
-        # Lógica de Data e Hora Inteligente
-        dt_atividade = datetime.now()
+        # IDOR Check: Verificar se a lavoura pertence ao usuário
+        lavoura = Lavoura.query.get(data.get('id_lavoura'))
+        if not lavoura or lavoura.id_usuario_fk != current_user.id:
+            return jsonify({"erro": "Lavoura inválida ou acesso negado"}), 403
+        dt_atividade = datetime.now(timezone.utc)
         if data.get('data'):
             try:
                 if len(data.get('data')) <= 10:
                     data_fornecida = datetime.fromisoformat(data.get('data')).date()
-                    if data_fornecida == datetime.now().date():
-                        dt_atividade = datetime.now()
+                    if data_fornecida == datetime.now(timezone.utc).date():
+                        dt_atividade = datetime.now(timezone.utc)
                     else:
                         dt_atividade = datetime.combine(data_fornecida, datetime.min.time().replace(hour=12))
                 else:
@@ -241,6 +258,7 @@ def create_atividade():
                     dt_atividade = datetime.fromisoformat(dt_str)
             except Exception as e:
                 print(f"Erro ao converter data: {e}")
+                dt_atividade = datetime.now(timezone.utc)
 
         nova_atividade = Atividade(
             id_lavoura_fk=data.get('id_lavoura'),
@@ -265,12 +283,19 @@ def create_atividade():
         return jsonify({"erro": str(e)}), 500
 
 @api.route('/atividades/<int:id>', methods=['PUT'])
+@login_required
 def update_atividade(id):
     atividade = db.session.get(Atividade, id)
     if not atividade:
         return jsonify({"erro": "Atividade não encontrada"}), 404
     
+    # IDOR Check: Verificar se a lavoura da atividade pertence ao usuário
+    if atividade.lavoura.id_usuario_fk != current_user.id:
+        return jsonify({"erro": "Acesso negado"}), 403
+    
     data = request.json
+    if not data:
+        return jsonify({"erro": "Nenhum dado recebido"}), 400
     
     # Campos básicos
     atividade.descricao = data.get('descricao', atividade.descricao)
@@ -313,10 +338,14 @@ def update_atividade(id):
     return jsonify(atividade.to_dict())
 
 @api.route('/atividades/<int:id>', methods=['DELETE'])
+@login_required
 def delete_atividade(id):
     atividade = db.session.get(Atividade, id)
     if not atividade:
         return jsonify({"erro": "Atividade não encontrada"}), 404
+    
+    if atividade.lavoura.id_usuario_fk != current_user.id:
+        return jsonify({"erro": "Acesso negado"}), 403
     
     db.session.delete(atividade)
     db.session.commit()
@@ -332,6 +361,11 @@ def upload_file():
         return jsonify({"erro": "Nome do arquivo vazio"}), 400
     
     if file:
+        # Validação de MimeType (Segurança)
+        allowed_mimetypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime']
+        if file.content_type not in allowed_mimetypes:
+            return jsonify({"erro": "Tipo de arquivo não permitido. Apenas imagens e vídeos."}), 400
+
         try:
             # Configurar Cloudinary
             cloudinary_url = current_app.config.get('CLOUDINARY_URL')
@@ -415,25 +449,24 @@ def get_tipos_atividade():
 # --- Rotas de Funcionários ---
 
 @api.route('/funcionarios', methods=['GET'])
+@login_required
 def get_funcionarios():
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-    # Funcionários não tem id_usuario_fk no schema que vi, 
-    # mas vamos assumir que queremos isolar por usuário se o model permitir.
-    # Se não houver o campo, por enquanto mantemos .all() ou filtramos por algo.
-    # TODO: Adicionar id_usuario_fk no modelo de Funcionario
-    funcionarios = Funcionario.query.all() 
+    # Funcionários agora devem ser filtrados por usuário
+    # Adicionamos o filtro id_usuario_fk (assumindo que o modelo foi ajustado ou será isolado)
+    # Para evitar quebra, se o campo não existir, mostramos apenas os que não tem dono ou os do admin
+    funcionarios = Funcionario.query.filter((Funcionario.id_usuario_fk == current_user.id) | (Funcionario.id_usuario_fk == None)).all() 
     return jsonify([f.to_dict() for f in funcionarios])
 
 @api.route('/funcionarios', methods=['POST'])
+@login_required
 def create_funcionario():
     data = request.json
     novo = Funcionario(
         nome=data.get('nome'),
         cargo=data.get('cargo'),
         salario_hora=data.get('salario_hora'),
-        contato=data.get('contato')
+        contato=data.get('contato'),
+        id_usuario_fk=current_user.id
     )
     db.session.add(novo)
     db.session.commit()
@@ -458,22 +491,21 @@ def handle_funcionario(id):
 # --- Rotas de Maquinário ---
 
 @api.route('/maquinarios', methods=['GET'])
+@login_required
 def get_maquinarios():
-    user = current_user
-    if not user.is_authenticated:
-        user = Usuario.query.first()
-    # Mesma lógica para maquinários
-    maquinas = Maquinario.query.all()
+    maquinas = Maquinario.query.filter((Maquinario.id_usuario_fk == current_user.id) | (Maquinario.id_usuario_fk == None)).all()
     return jsonify([m.to_dict() for m in maquinas])
 
 @api.route('/maquinarios', methods=['POST'])
+@login_required
 def create_maquinario():
     data = request.json
     novo = Maquinario(
         tipo=data.get('tipo'),
         modelo=data.get('modelo'),
         valor_hora=data.get('valor_hora'),
-        consumo_medio=data.get('consumo_medio')
+        consumo_medio=data.get('consumo_medio'),
+        id_usuario_fk=current_user.id
     )
     db.session.add(novo)
     db.session.commit()

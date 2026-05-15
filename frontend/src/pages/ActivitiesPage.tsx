@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, MessageSquare } from 'lucide-react';
 import Layout from '../components/Layout';
+import { api } from '../services/api';
+import { getMediaUrl } from '../utils/media';
 
 interface TipoAtividade {
   id: number;
@@ -26,16 +28,18 @@ const ActivitiesPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/feed')
-      .then(res => res.json())
-      .then(data => {
+    const loadData = async () => {
+      try {
+        const res = await api.get('/api/v1/feed');
+        const data = await res.json();
         setAtividades(data);
-        setLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error("Erro ao buscar atividades:", err);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    loadData();
   }, []);
 
   const formatDate = (dateStr: string) => {
@@ -84,7 +88,7 @@ const ActivitiesPage = () => {
                     {atv.imagens.map((img) => (
                       <img 
                         key={img.id} 
-                        src={img.foto_url?.startsWith('http') ? img.foto_url : (import.meta.env.VITE_API_URL || '') + img.foto_url} 
+                        src={getMediaUrl(img.foto_url)} 
                         className="w-20 h-20 object-cover rounded-lg border border-gray-50 shrink-0" 
                       />
                     ))}

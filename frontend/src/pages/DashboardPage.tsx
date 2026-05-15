@@ -8,6 +8,7 @@ import {
   ArrowUpRight, Calendar, Filter 
 } from 'lucide-react';
 import Layout from '../components/Layout';
+import { api } from '../services/api';
 
 const COLORS = ['#008069', '#25D366', '#34B7F1', '#ECE5DD', '#FFBC2C'];
 
@@ -16,49 +17,61 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulando busca de dados agregados
-    // Em uma app real, faríamos um fetch para /api/v1/stats
-    Promise.all([
-      fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/lavouras').then(res => res.json()),
-      fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/feed').then(res => res.json()),
-      fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/funcionarios').then(res => res.json()),
-      fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/maquinarios').then(res => res.json())
-    ]).then(([lavouras, atividades, funcionarios, maquinarios]) => {
-      
-      // Processando dados para os gráficos
-      const atividadesPorTipo = atividades.reduce((acc: any, atv: any) => {
-        const tipo = atv.tipo?.nome || 'Outros';
-        acc[tipo] = (acc[tipo] || 0) + 1;
-        return acc;
-      }, {});
+    const loadAllStats = async () => {
+      try {
+        const [lavourasRes, feedRes, funcsRes, maqsRes] = await Promise.all([
+          api.get('/api/v1/lavouras'),
+          api.get('/api/v1/feed'),
+          api.get('/api/v1/funcionarios'),
+          api.get('/api/v1/maquinarios')
+        ]);
 
-      const pieData = Object.keys(atividadesPorTipo).map(name => ({
-        name, value: atividadesPorTipo[name]
-      }));
+        const [lavouras, atividades, funcionarios, maquinarios] = await Promise.all([
+          lavourasRes.json(),
+          feedRes.json(),
+          funcsRes.json(),
+          maqsRes.json()
+        ]);
+        
+        // Processando dados para os gráficos
+        const atividadesPorTipo = atividades.reduce((acc: any, atv: any) => {
+          const tipo = atv.tipo?.nome || 'Outros';
+          acc[tipo] = (acc[tipo] || 0) + 1;
+          return acc;
+        }, {});
 
-      // Atividades por dia (últimos 7 dias)
-      const last7Days = [...Array(7)].map((_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        return d.toISOString().split('T')[0];
-      }).reverse();
+        const pieData = Object.keys(atividadesPorTipo).map(name => ({
+          name, value: atividadesPorTipo[name]
+        }));
 
-      const lineData = last7Days.map(date => ({
-        date: new Date(date).toLocaleDateString('pt-BR', { weekday: 'short' }),
-        count: atividades.filter((a: any) => a.data.startsWith(date)).length
-      }));
+        // Atividades por dia (últimos 7 dias)
+        const last7Days = [...Array(7)].map((_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          return d.toISOString().split('T')[0];
+        }).reverse();
 
-      setStats({
-        totalLavouras: lavouras.length,
-        totalAtividades: atividades.length,
-        totalFuncionarios: funcionarios.length,
-        totalMaquinarios: maquinarios.length,
-        pieData,
-        lineData,
-        atividadesRecentes: atividades.slice(0, 5)
-      });
-      setLoading(false);
-    });
+        const lineData = last7Days.map(date => ({
+          date: new Date(date).toLocaleDateString('pt-BR', { weekday: 'short' }),
+          count: atividades.filter((a: any) => a.data && a.data.startsWith(date)).length
+        }));
+
+        setStats({
+          totalLavouras: lavouras.length,
+          totalAtividades: atividades.length,
+          totalFuncionarios: funcionarios.length,
+          totalMaquinarios: maquinarios.length,
+          pieData,
+          lineData,
+          atividadesRecentes: atividades.slice(0, 5)
+        });
+      } catch (err) {
+        console.error("Erro ao carregar dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAllStats();
   }, []);
 
   if (loading) {
