@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
+import { api } from '../services/api';
 
 interface Funcionario {
   id_funcionario: number;
@@ -27,18 +28,17 @@ const FuncionariosPage = () => {
     contato: ''
   });
 
-  const loadFuncionarios = () => {
+  const loadFuncionarios = async () => {
     setLoading(true);
-    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/funcionarios')
-      .then(res => res.json())
-      .then(data => {
-        setFuncionarios(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Erro ao buscar funcionários:", err);
-        setLoading(false);
-      });
+    try {
+      const res = await api.get('/api/v1/funcionarios');
+      const data = await res.json();
+      setFuncionarios(data);
+    } catch (err) {
+      console.error("Erro ao buscar funcionários:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -48,14 +48,9 @@ const FuncionariosPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingFunc ? 'PUT' : 'POST';
-    const url = (import.meta.env.VITE_API_URL || '') + (editingFunc ? `/api/v1/funcionarios/${editingFunc.id_funcionario}` : '/api/v1/funcionarios');
-
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
+      const endpoint = editingFunc ? `/api/v1/funcionarios/${editingFunc.id_funcionario}` : '/api/v1/funcionarios';
+      const res = await (editingFunc ? api.put(endpoint, form) : api.post(endpoint, form));
 
       if (res.ok) {
         setIsModalOpen(false);
@@ -82,7 +77,7 @@ const FuncionariosPage = () => {
             onClick={async () => {
               toast.dismiss(t.id);
               try {
-                const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/funcionarios/${id}`, { method: 'DELETE' });
+                const res = await api.delete(`/api/v1/funcionarios/${id}`);
                 if (res.ok) {
                   loadFuncionarios();
                   toast.success("Excluído com sucesso");
@@ -103,7 +98,7 @@ const FuncionariosPage = () => {
           </button>
         </div>
       </div>
-    ), { duration: 5000 });
+    ), { duration: 4000 });
   };
 
   const openEdit = (func: Funcionario) => {

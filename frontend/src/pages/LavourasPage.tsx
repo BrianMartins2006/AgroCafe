@@ -1,8 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Sprout, MessageSquarePlus, Settings, Search, Trash, MoreVertical, Pin, PinOff } from 'lucide-react';
+import { RefreshCw, Sprout, MessageSquarePlus, Settings, Search, Trash, Pin, PinOff, X } from 'lucide-react';
 import Layout from '../components/Layout';
+import Skeleton from '../components/Skeleton';
+import { api } from '../services/api';
+import { getMediaUrl } from '../utils/media';
+
+
+// Icone customizado para garantir compatibilidade
+const MoreVertical = ({ size, className }: { size: number; className?: string }) => (
+  <svg 
+    width={size} height={size} viewBox="0 0 24 24" fill="none" 
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
+    strokeLinejoin="round" className={className}
+  >
+    <circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" />
+  </svg>
+);
 
 interface Lavoura {
   id: number;
@@ -15,25 +30,25 @@ interface Lavoura {
   ultima_atividade_date?: string | null;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || '';
 
 const LavourasPage = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [selectedLavoura, setSelectedLavoura] = useState<Lavoura | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Busca de dados com React Query (Persistence habilitada no App.tsx)
   const { data: lavouras = [], isLoading, isFetching } = useQuery<Lavoura[]>({
     queryKey: ['lavouras'],
-    queryFn: () => fetch(`${API_URL}/api/v1/lavouras`).then(res => res.json()),
+    queryFn: () => api.get('/api/v1/lavouras').then(res => res.json()),
   });
 
   // Mutação para Deletar
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => fetch(`${API_URL}/api/v1/lavouras/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: number) => api.delete(`/api/v1/lavouras/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lavouras'] });
       setShowDeleteConfirm(false);
@@ -43,7 +58,7 @@ const LavourasPage = () => {
 
   // Mutação para Toggle Pin
   const pinMutation = useMutation({
-    mutationFn: (id: number) => fetch(`${API_URL}/api/v1/lavouras/${id}/pin`, { method: 'PATCH' }),
+    mutationFn: (id: number) => api.patch(`/api/v1/lavouras/${id}/pin`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lavouras'] });
       setSelectedLavoura(null);
@@ -124,13 +139,13 @@ const LavourasPage = () => {
         )}
 
         {isLoading ? (
-          <div className="w-full">
+          <div className="p-4 space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center p-4 border-b border-gray-100 animate-pulse">
-                <div className="w-14 h-14 rounded-full bg-gray-200 flex-shrink-0"></div>
-                <div className="ml-4 flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
-                  <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+              <div key={i} className="bg-white p-4 rounded-[2rem] flex gap-4 items-center shadow-sm border border-gray-50">
+                <Skeleton className="w-14 h-14 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-1/2" />
                 </div>
               </div>
             ))}
@@ -155,14 +170,19 @@ const LavourasPage = () => {
               onPointerLeave={clearLongPress}
               className={`group flex items-center p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 active:bg-gray-100 transition-all relative ${lavoura.is_pinned ? 'bg-gray-50/50' : 'bg-white'}`}
             >
-              {/* Avatar */}
-              <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 shadow-sm">
-                <img 
-                  src={lavoura.foto_perfil ? (lavoura.foto_perfil.startsWith('http') ? lavoura.foto_perfil : (API_URL + lavoura.foto_perfil)) : "/images/default-lavoura.jpg"} 
-                  alt={lavoura.nome} 
-                  loading="lazy"
-                  className="w-full h-full object-cover" 
-                />
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  lavoura.foto_perfil && setLightboxImage(getMediaUrl(lavoura.foto_perfil));
+                }}
+                className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 shadow-sm active:scale-90 transition-all cursor-pointer"
+              >
+                  <img 
+                    src={getMediaUrl(lavoura.foto_perfil)} 
+                    alt={lavoura.nome} 
+                    loading="lazy"
+                    className="w-full h-full object-cover" 
+                  />
               </div>
 
               {/* Info */}
@@ -215,7 +235,12 @@ const LavourasPage = () => {
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden animate-in slide-in-from-bottom-10 duration-300 shadow-2xl">
             <div className="p-8">
               <div className="flex items-center gap-5 mb-8">
-                <img src={selectedLavoura.foto_perfil?.startsWith('http') ? selectedLavoura.foto_perfil : (API_URL + selectedLavoura.foto_perfil)} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-gray-50 shadow-lg" />
+                <img 
+                  onClick={() => selectedLavoura.foto_perfil && setLightboxImage(getMediaUrl(selectedLavoura.foto_perfil))}
+                  src={getMediaUrl(selectedLavoura.foto_perfil)} 
+                  alt="" 
+                  className="w-20 h-20 rounded-full object-cover border-4 border-gray-50 shadow-lg cursor-pointer active:scale-95 transition-all" 
+                />
                 <div>
                   <h3 className="font-black text-2xl text-gray-900 leading-tight">{selectedLavoura.nome}</h3>
                   <p className="text-gray-400 font-bold text-sm flex items-center gap-1 mt-1">
@@ -289,6 +314,28 @@ const LavourasPage = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Lightbox Style WhatsApp */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black z-[200] flex flex-col animate-in fade-in duration-200"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="p-4 flex items-center justify-between text-white bg-black/40 backdrop-blur-md absolute top-0 left-0 right-0 z-10">
+            <div className="flex items-center gap-3">
+              <span className="font-bold">Visualizar Foto</span>
+            </div>
+            <button onClick={() => setLightboxImage(null)} className="p-2"><X size={24} /></button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-2">
+            <img 
+              src={lightboxImage} 
+              alt="" 
+              className="max-w-full max-h-[80vh] object-contain shadow-2xl animate-in zoom-in-95 duration-300" 
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}

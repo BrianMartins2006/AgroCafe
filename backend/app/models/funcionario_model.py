@@ -12,6 +12,7 @@ class Funcionario(db.Model):
     cargo = db.Column(db.String(50))
     salario_hora = db.Column(db.Numeric(10, 2))
     contato = db.Column(db.String(100))
+    id_usuario_fk = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario'), nullable=True)
 
     def to_dict(self):
         return {
@@ -19,7 +20,8 @@ class Funcionario(db.Model):
             'nome': self.nome,
             'cargo': self.cargo,
             'salario_hora': float(self.salario_hora) if self.salario_hora else 0,
-            'contato': self.contato
+            'contato': self.contato,
+            'id_usuario_fk': self.id_usuario_fk
         }
 
     def __repr__(self):

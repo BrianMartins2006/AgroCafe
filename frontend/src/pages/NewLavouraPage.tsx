@@ -4,6 +4,10 @@ import { Sprout, Check, Camera } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Layout from '../components/Layout';
 import MediaPicker from '../components/MediaPicker';
+import { api } from '../services/api';
+import { compressImage } from '../utils/imageCompression';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const NewLavouraPage = () => {
   const { id } = useParams();
@@ -19,15 +23,11 @@ const NewLavouraPage = () => {
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const API_URL = import.meta.env.VITE_API_URL || '';
 
   const mutation = useMutation({
     mutationFn: async (payload: any) => {
-      const response = await fetch(API_URL + (isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras'), {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const endpoint = isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras';
+      const response = await (isEdit ? api.put(endpoint, payload) : api.post(endpoint, payload));
       if (!response.ok) throw new Error('Falha ao salvar');
       return response.json();
     },
@@ -59,7 +59,7 @@ const NewLavouraPage = () => {
 
   useEffect(() => {
     if (isEdit) {
-      fetch(API_URL + `/api/v1/lavouras`)
+      api.get('/api/v1/lavouras')
         .then(res => res.json())
         .then(data => {
           const lavoura = data.find((l: any) => l.id === parseInt(id));
@@ -75,11 +75,12 @@ const NewLavouraPage = () => {
     }
   }, [id, isEdit, API_URL]);
 
-  const handleImageSelected = (files: File[]) => {
+  const handleImageSelected = async (files: File[]) => {
     const file = files[0];
     if (file) {
-      setImgFile(file);
-      setFotoPerfil(URL.createObjectURL(file));
+      const compressed = await compressImage(file);
+      setImgFile(compressed);
+      setFotoPerfil(URL.createObjectURL(compressed));
     }
   };
 
@@ -93,10 +94,7 @@ const NewLavouraPage = () => {
       if (imgFile) {
         const formData = new FormData();
         formData.append('file', imgFile);
-        const uploadRes = await fetch(API_URL + '/api/v1/upload', {
-          method: 'POST',
-          body: formData
-        });
+        const uploadRes = await api.post('/api/v1/upload', formData);
         if (uploadRes.ok) {
           const uploadData = await uploadRes.json();
           finalFotoPerfil = uploadData.url;
@@ -130,7 +128,7 @@ const NewLavouraPage = () => {
             <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-xl">
               {fotoPerfil ? (
                 <img 
-                  src={fotoPerfil.startsWith('blob:') || fotoPerfil.startsWith('http') ? fotoPerfil : (API_URL + fotoPerfil)} 
+                  src={fotoPerfil} 
                   alt="Perfil" 
                   className="w-full h-full object-cover" 
                 />
