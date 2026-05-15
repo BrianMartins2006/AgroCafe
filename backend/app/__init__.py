@@ -15,7 +15,7 @@ login_manager.login_message_category = "info"
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": ["http://localhost:5173", "https://agro-cafe.vercel.app"]}})
 
     db.init_app(app)
     login_manager.init_app(app)
