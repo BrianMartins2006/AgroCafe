@@ -12,14 +12,26 @@ import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
 import WelcomePage from './pages/WelcomePage';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { get, set, del } from 'idb-keyval';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutos de cache "fresco"
-      gcTime: 1000 * 60 * 30,    // 30 minutos até o lixo ser coletado
+      gcTime: 1000 * 60 * 60 * 24, // 24 horas até o lixo ser coletado do cache (persistente)
     },
+  },
+});
+
+// Configuração do Persister usando IndexedDB (idb-keyval)
+const persister = createAsyncStoragePersister({
+  storage: {
+    getItem: (key) => get(key),
+    setItem: (key, value) => set(key, value),
+    removeItem: (key) => del(key),
   },
 });
 
@@ -27,7 +39,10 @@ function App() {
   const isOnboarded = localStorage.getItem('onboarding_complete') === 'true';
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider 
+      client={queryClient} 
+      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 * 7 }} // 7 dias de persistência
+    >
       <BrowserRouter>
         <Toaster 
           position="top-center" 
@@ -62,7 +77,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
-  </QueryClientProvider>
+    </PersistQueryClientProvider>
 );
 }
 

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { useDraggableScroll } from '../hooks/useDraggableScroll';
+import { compressImage } from '../utils/performance';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -50,7 +51,7 @@ const ChatPage = () => {
     data: new Date().toLocaleDateString('en-CA'), fotos: [] as string[]
   });
 
-  // Queries
+  // Queries (Persistence habilitada no App.tsx)
   const { data: lavouras = [] } = useQuery({
     queryKey: ['lavouras'],
     queryFn: () => fetch(`${API_URL}/api/v1/lavouras`).then(res => res.json())
@@ -68,7 +69,7 @@ const ChatPage = () => {
     queryFn: () => fetch(`${API_URL}/api/v1/funcionarios`).then(res => res.json())
   });
 
-  const { data: atividades = [], isLoading: loading } = useQuery({
+  const { data: atividades = [], isLoading, isFetching } = useQuery({
     queryKey: ['atividades', id],
     queryFn: () => fetch(`${API_URL}/api/v1/lavouras/${id}/atividades`).then(res => res.json()),
     enabled: !!id
@@ -147,8 +148,11 @@ const ChatPage = () => {
     if (files.length === 0) return;
 
     for (const file of files) {
+      // Compress image before upload
+      const compressedFile = await compressImage(file);
+      
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', compressedFile, file.name);
       const data = await uploadMutation.mutateAsync(formData);
       
       if (data.url) {
@@ -186,7 +190,7 @@ const ChatPage = () => {
   return (
     <Layout 
       title={lavoura?.nome || "Carregando..."} 
-      subtitle={lavoura ? "Toque para ver os detalhes" : undefined}
+      subtitle={isFetching ? "Sincronizando dados..." : (lavoura ? "Toque para ver os detalhes" : undefined)}
       avatarUrl={lavoura?.foto_perfil}
       showBackButton={true} 
       onSearchClick={() => setShowSearch(!showSearch)}
@@ -239,7 +243,7 @@ const ChatPage = () => {
 
         {/* Lista de Mensagens */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 relative no-scrollbar pb-32">
-          {loading ? (
+          {isLoading ? (
             [...Array(4)].map((_, i) => (
               <div key={i} className={`flex flex-col animate-pulse ${i % 2 === 0 ? 'items-start' : 'items-end'}`}>
                 <div className="bg-gray-200 rounded-xl rounded-tl-none p-3 shadow-sm w-[70%] h-24 relative border-l-4 border-l-gray-300"></div>
@@ -266,6 +270,7 @@ const ChatPage = () => {
                       <img 
                         key={img.id} 
                         src={img.foto_url ? (img.foto_url.startsWith('http') ? img.foto_url : (API_URL + img.foto_url)) : ""} 
+                        loading="lazy"
                         className="w-full h-32 object-cover cursor-pointer active:scale-95 transition-all" 
                         onClick={() => setLightboxImage(img.foto_url.startsWith('http') ? img.foto_url : (API_URL + img.foto_url))} 
                       />

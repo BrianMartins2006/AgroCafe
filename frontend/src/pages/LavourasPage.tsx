@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Sprout, MessageSquarePlus, Settings, Search, Trash, MoreVertical, Pin, PinOff } from 'lucide-react';
+import { RefreshCw, Sprout, MessageSquarePlus, Settings, Search, Trash, MoreVertical, Pin, PinOff } from 'lucide-react';
 import Layout from '../components/Layout';
 
 interface Lavoura {
@@ -25,8 +25,8 @@ const LavourasPage = () => {
   const [selectedLavoura, setSelectedLavoura] = useState<Lavoura | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Busca de dados com React Query
-  const { data: lavouras = [], isLoading: loading } = useQuery<Lavoura[]>({
+  // Busca de dados com React Query (Persistence habilitada no App.tsx)
+  const { data: lavouras = [], isLoading, isFetching } = useQuery<Lavoura[]>({
     queryKey: ['lavouras'],
     queryFn: () => fetch(`${API_URL}/api/v1/lavouras`).then(res => res.json()),
   });
@@ -96,8 +96,14 @@ const LavourasPage = () => {
       onSearchClick={() => setShowSearch(!showSearch)}
     >
       <div className="bg-white min-h-screen pb-20">
-        <div className="bg-whatsapp-teal text-white p-4 text-xs font-bold uppercase tracking-widest text-center shadow-inner">
+        <div className="bg-whatsapp-teal text-white p-4 text-xs font-bold uppercase tracking-widest text-center shadow-inner relative">
           Meus Talhões de Café
+          {isFetching && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-[8px] animate-pulse">
+              <RefreshCw size={10} className="animate-spin" />
+              Sincronizando...
+            </div>
+          )}
         </div>
         
         {/* Search Bar */}
@@ -117,7 +123,7 @@ const LavourasPage = () => {
           </div>
         )}
 
-        {loading ? (
+        {isLoading ? (
           <div className="w-full">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center p-4 border-b border-gray-100 animate-pulse">
@@ -154,6 +160,7 @@ const LavourasPage = () => {
                 <img 
                   src={lavoura.foto_perfil ? (lavoura.foto_perfil.startsWith('http') ? lavoura.foto_perfil : (API_URL + lavoura.foto_perfil)) : "/images/default-lavoura.jpg"} 
                   alt={lavoura.nome} 
+                  loading="lazy"
                   className="w-full h-full object-cover" 
                 />
               </div>

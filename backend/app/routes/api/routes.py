@@ -75,6 +75,10 @@ def update_perfil():
 
 # --- Rotas de Lavouras ---
 
+@api.route('/health', methods=['GET'])
+def health_check():
+    return {"status": "ok", "message": "Backend is awake!"}, 200
+
 @api.route('/lavouras', methods=['GET'])
 def get_lavouras():
     user = current_user
