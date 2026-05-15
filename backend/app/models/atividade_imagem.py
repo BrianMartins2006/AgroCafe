@@ -11,9 +11,14 @@ class AtividadeImagem(db.Model):
     atividade = db.relationship('Atividade', back_populates='imagens')
 
     def to_dict(self):
+        url = self.foto_url
+        if "res.cloudinary.com" in url and "/upload/" in url:
+            # Garante que a imagem venha otimizada e com tamanho máximo razoável para o feed
+            if "q_auto" not in url:
+                url = url.replace("/upload/", "/upload/f_auto,q_auto,w_1200,c_limit/")
         return {
             'id': self.id,
-            'foto_url': self.foto_url
+            'foto_url': url
         }
 
     def __repr__(self):

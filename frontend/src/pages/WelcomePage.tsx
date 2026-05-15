@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { Camera, Check, ArrowRight, User, Coffee, Mail, Lock, ShieldQuestion, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { api } from '../services/api';
 
 const WelcomePage = () => {
-
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -70,7 +70,8 @@ const WelcomePage = () => {
         localStorage.setItem('user_name', data.nome);
         localStorage.setItem('user_photo', data.foto_url || '');
         toast.success(`Bem-vindo, ${data.nome}!`);
-        window.location.href = '/';
+        window.dispatchEvent(new CustomEvent('app:login'));
+        navigate('/');
       } else {
         toast.error(data.erro || 'Erro ao realizar cadastro');
       }

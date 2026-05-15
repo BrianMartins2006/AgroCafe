@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import LavourasPage from './pages/LavourasPage';
@@ -39,7 +40,15 @@ const persister = createAsyncStoragePersister({
 });
 
 function App() {
-  const isOnboarded = localStorage.getItem('onboarding_complete') === 'true';
+  const [isOnboarded, setIsOnboarded] = useState(localStorage.getItem('onboarding_complete') === 'true');
+
+  useEffect(() => {
+    const handleLoginEvent = () => {
+      setIsOnboarded(localStorage.getItem('onboarding_complete') === 'true');
+    };
+    window.addEventListener('app:login', handleLoginEvent);
+    return () => window.removeEventListener('app:login', handleLoginEvent);
+  }, []);
 
   return (
     <PersistQueryClientProvider 

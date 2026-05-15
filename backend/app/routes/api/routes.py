@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, jsonify, request, current_app
+from sqlalchemy.orm import joinedload
 from flask_login import login_required, current_user, login_user, logout_user
 from werkzeug.utils import secure_filename
 from app import db
@@ -128,7 +129,14 @@ def health_check():
 @api.route('/lavouras', methods=['GET'])
 @login_required
 def get_lavouras():
-    lavouras = Lavoura.query.filter_by(id_usuario_fk=current_user.id).all()
+    # Migração on-the-fly: Vincular lavouras sem dono ao usuário atual
+    Lavoura.query.filter(Lavoura.id_usuario_fk.is_(None)).update({Lavoura.id_usuario_fk: current_user.id})
+    db.session.commit()
+    
+    lavouras = (Lavoura.query
+                .options(joinedload(Lavoura.atividades))
+                .filter_by(id_usuario_fk=current_user.id)
+                .all())
     return jsonify([l.to_dict() for l in lavouras])
 
 @api.route('/lavouras', methods=['POST'])
@@ -229,7 +237,12 @@ def get_atividades_lavoura(id):
 @api.route('/feed', methods=['GET'])
 @login_required
 def get_global_feed():
-    atividades = Atividade.query.join(Lavoura).filter(Lavoura.id_usuario_fk == current_user.id).order_by(Atividade.data.desc()).all()
+    atividades = (Atividade.query
+                  .options(joinedload(Atividade.imagens), joinedload(Atividade.tipo))
+                  .join(Lavoura)
+                  .filter(Lavoura.id_usuario_fk == current_user.id)
+                  .order_by(Atividade.data.desc())
+                  .all())
     return jsonify([a.to_dict() for a in atividades])
 
 @api.route('/atividades', methods=['POST'])

@@ -62,12 +62,12 @@ def create_app(config_class=Config):
 
         # Migração: Definir resposta de segurança padrão para usuários antigos
         users_without_answer = Usuario.query.filter(Usuario.resposta_hash.is_(None)).all()
-        for u in users_without_answer:
-            u.pergunta_seguranca = "Qual a palavra-chave padrão de recuperação?"
-            u.set_security_answer("agrocafe")
         if users_without_answer:
+            for u in users_without_answer:
+                u.pergunta_seguranca = u.pergunta_seguranca or "Qual a palavra-chave padrão de recuperação?"
+                u.set_security_answer("agrocafe")
             db.session.commit()
-            print(f"Resposta de segurança padrão configurada para {len(users_without_answer)} usuários antigos!")
+            print(f"INFO: {len(users_without_answer)} usuários antigos migrados com sucesso.")
 
     @app.errorhandler(500)
     def handle_500_error(e):

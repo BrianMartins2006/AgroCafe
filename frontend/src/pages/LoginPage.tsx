@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Coffee, Check, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { api } from '../services/api';
 
 const LoginPage = () => {
-
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
@@ -29,7 +29,8 @@ const LoginPage = () => {
         localStorage.setItem('user_name', data.nome);
         localStorage.setItem('user_photo', data.foto_url || '');
         toast.success(`Bem-vindo de volta, ${data.nome}!`);
-        window.location.href = '/';
+        window.dispatchEvent(new CustomEvent('app:login'));
+        navigate('/');
       } else {
         toast.error(data.erro || 'E-mail ou senha incorretos');
       }
