@@ -1,6 +1,10 @@
+import { toast } from 'react-hot-toast';
+
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
+let isWakingUpToastShown = false;
+
+export const apiFetch = async (endpoint: string, options: RequestInit = {}, retries = 5): Promise<Response> => {
   const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
   
   // Garantir que as credenciais (cookies) sejam enviadas
@@ -20,19 +24,68 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     };
   }
 
-  const response = await fetch(url, defaultOptions);
-
-  if (response.status === 401) {
-    // Sessão expirada ou não autenticado
-    if (!url.includes('/auth/login') && !url.includes('/auth/register')) {
-      localStorage.removeItem('onboarding_complete');
-      localStorage.removeItem('user_name');
-      localStorage.removeItem('user_photo');
-      window.location.href = '/welcome'; // Redireciona para o início
+  let toastId: string | undefined;
+  
+  // Se demorar mais de 3 segundos, assume que o servidor do Render está acordando
+  const timeoutId = setTimeout(() => {
+    if (!isWakingUpToastShown) {
+      toastId = toast.loading('☕ Acordando o servidor... Isso pode levar até 50 segundos na primeira vez.', {
+        duration: 60000,
+        style: {
+          background: '#fff3cd',
+          color: '#856404',
+          fontWeight: 'bold',
+          border: '1px solid #ffeeba'
+        }
+      });
+      isWakingUpToastShown = true;
     }
-  }
+  }, 3000);
 
-  return response;
+  try {
+    const response = await fetch(url, defaultOptions);
+    clearTimeout(timeoutId);
+    
+    if (toastId) {
+      toast.dismiss(toastId);
+      toast.success('Servidor online e pronto!');
+      isWakingUpToastShown = false;
+    }
+
+    // Se o Render retornar 502 ou 503 enquanto acorda, tratamos como erro para fazer retry
+    if (response.status === 502 || response.status === 503) {
+      throw new Error(`Server waking up: ${response.status}`);
+    }
+
+    if (response.status === 401) {
+      // Sessão expirada ou não autenticado
+      if (!url.includes('/auth/login') && !url.includes('/auth/register')) {
+        localStorage.removeItem('onboarding_complete');
+        localStorage.removeItem('user_name');
+        localStorage.removeItem('user_photo');
+        window.location.href = '/welcome'; // Redireciona para o início
+      }
+    }
+
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    // Se ainda houver retries, espera 5 segundos e tenta de novo
+    if (retries > 0) {
+      console.log(`Falha na conexão, o servidor pode estar acordando. Tentando novamente em 5s... (${retries} retries restantes)`);
+      await new Promise(res => setTimeout(res, 5000));
+      return apiFetch(endpoint, options, retries - 1);
+    }
+    
+    if (toastId) {
+      toast.dismiss(toastId);
+      toast.error('O servidor demorou muito para responder. Tente novamente mais tarde.');
+      isWakingUpToastShown = false;
+    }
+
+    throw error;
+  }
 };
 
 export const api = {
