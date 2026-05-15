@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Coffee, Check, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { api } from '../services/api';
 
 const LoginPage = () => {
-  const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
