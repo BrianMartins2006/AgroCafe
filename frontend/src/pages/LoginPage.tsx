@@ -29,7 +29,7 @@ const LoginPage = () => {
         localStorage.setItem('user_name', data.nome);
         localStorage.setItem('user_photo', data.foto_url || '');
         toast.success(`Bem-vindo de volta, ${data.nome}!`);
-        navigate('/');
+        window.location.href = '/';
       } else {
         toast.error(data.erro || 'E-mail ou senha incorretos');
       }

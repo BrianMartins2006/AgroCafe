@@ -70,7 +70,7 @@ const WelcomePage = () => {
         localStorage.setItem('user_name', data.nome);
         localStorage.setItem('user_photo', data.foto_url || '');
         toast.success(`Bem-vindo, ${data.nome}!`);
-        navigate('/');
+        window.location.href = '/';
       } else {
         toast.error(data.erro || 'Erro ao realizar cadastro');
       }
