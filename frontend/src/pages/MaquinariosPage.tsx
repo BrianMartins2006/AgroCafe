@@ -47,7 +47,6 @@ const MaquinariosPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const method = editingMaq ? 'PUT' : 'POST';
     try {
       const endpoint = editingMaq ? `/api/v1/maquinarios/${editingMaq.id_maquina}` : '/api/v1/maquinarios';
       const res = await (editingMaq ? api.put(endpoint, form) : api.post(endpoint, form));

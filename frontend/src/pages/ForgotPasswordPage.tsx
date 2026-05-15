@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Mail, ShieldQuestion, Key, ArrowRight, Coffee, Check, ChevronLeft, Eye, EyeOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Mail, ShieldQuestion, Key, ArrowRight, Check, ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { api } from '../services/api';
 
 const ForgotPasswordPage = () => {
-  const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: Email, 2: Question, 3: Success
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');

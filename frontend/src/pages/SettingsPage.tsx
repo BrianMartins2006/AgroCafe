@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Users, Truck, ChevronRight, Plus, User, 
+  Users, Truck, ChevronRight, Plus,
   LayoutGrid, Trash2, Edit, X, Check,
   Sprout, Wind, Zap, Droplets, Sun, Hammer,
   Download, RefreshCw, ZapOff

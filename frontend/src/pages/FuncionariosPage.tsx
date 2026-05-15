@@ -47,7 +47,6 @@ const FuncionariosPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const method = editingFunc ? 'PUT' : 'POST';
     try {
       const endpoint = editingFunc ? `/api/v1/funcionarios/${editingFunc.id_funcionario}` : '/api/v1/funcionarios';
       const res = await (editingFunc ? api.put(endpoint, form) : api.post(endpoint, form));
