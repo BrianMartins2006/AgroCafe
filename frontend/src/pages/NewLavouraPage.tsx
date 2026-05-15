@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Sprout, Check, Camera } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Layout from '../components/Layout';
 import MediaPicker from '../components/MediaPicker';
 
@@ -16,8 +17,45 @@ const NewLavouraPage = () => {
   const [imgFile, setImgFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || '';
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const API_URL = import.meta.env.VITE_API_URL || '';
+
+  const mutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const response = await fetch(API_URL + (isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras'), {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error('Falha ao salvar');
+      return response.json();
+    },
+    onMutate: async (newLavoura) => {
+      await queryClient.cancelQueries({ queryKey: ['lavouras'] });
+      const previousLavouras = queryClient.getQueryData(['lavouras']);
+      
+      if (!isEdit) {
+        queryClient.setQueryData(['lavouras'], (old: any) => [
+          ...(old || []), 
+          { 
+            ...newLavoura, 
+            id: Date.now(), 
+            is_pinned: false,
+            ultima_atividade_date: new Date().toISOString()
+          }
+        ]);
+      }
+      
+      return { previousLavouras };
+    },
+    onError: (err, newLavoura, context: any) => {
+      queryClient.setQueryData(['lavouras'], context.previousLavouras);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['lavouras'] });
+    }
+  });
 
   useEffect(() => {
     if (isEdit) {
@@ -52,7 +90,6 @@ const NewLavouraPage = () => {
     try {
       let finalFotoPerfil = fotoPerfil;
 
-      // Se tiver novo arquivo, faz upload primeiro
       if (imgFile) {
         const formData = new FormData();
         formData.append('file', imgFile);
@@ -66,25 +103,17 @@ const NewLavouraPage = () => {
         }
       }
 
-      const response = await fetch(API_URL + (isEdit ? `/api/v1/lavouras/${id}` : '/api/v1/lavouras'), {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          nome,
-          cultura,
-          foto_perfil: finalFotoPerfil || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=100&q=80",
-          area_hectares: area ? parseFloat(area) : null,
-          localizacao,
-          data_inicio: dataInicio,
-          id_usuario_fk: null
-        }),
+      await mutation.mutateAsync({
+        nome,
+        cultura,
+        foto_perfil: finalFotoPerfil || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=100&q=80",
+        area_hectares: area ? parseFloat(area) : null,
+        localizacao,
+        data_inicio: dataInicio,
+        id_usuario_fk: null
       });
 
-      if (response.ok) {
-        navigate('/');
-      }
+      navigate('/');
     } catch (err) {
       console.error("Erro ao salvar lavoura:", err);
     } finally {
