@@ -33,3 +33,11 @@ class Config:
     
     # Cloudinary Integration
     CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
+
+    # Session configurations for Cross-Site (Vercel -> Render)
+    # Necessário para que os cookies sejam enviados entre domínios diferentes em HTTPS
+    SESSION_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SAMESITE = 'None'
+    REMEMBER_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True

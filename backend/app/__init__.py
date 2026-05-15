@@ -20,6 +20,10 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
 
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        return {"error": "Não autorizado", "message": "Sessão expirada ou não autenticado"}, 401
+
     from app.models.user_model import Usuario
 
     @login_manager.user_loader
