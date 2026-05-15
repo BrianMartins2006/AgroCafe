@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Sprout, Check, Camera } from 'lucide-react';
 import Layout from '../components/Layout';
+import MediaPicker from '../components/MediaPicker';
 
 const NewLavouraPage = () => {
   const { id } = useParams();
@@ -14,6 +15,7 @@ const NewLavouraPage = () => {
   const [fotoPerfil, setFotoPerfil] = useState<string | null>(null);
   const [imgFile, setImgFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || '';
   const navigate = useNavigate();
 
@@ -35,8 +37,8 @@ const NewLavouraPage = () => {
     }
   }, [id, isEdit, API_URL]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImageSelected = (files: File[]) => {
+    const file = files[0];
     if (file) {
       setImgFile(file);
       setFotoPerfil(URL.createObjectURL(file));
@@ -109,10 +111,12 @@ const NewLavouraPage = () => {
                 </div>
               )}
             </div>
-            <label className="absolute bottom-1 right-1 bg-whatsapp-teal text-white p-2 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform">
+            <button 
+              onClick={() => setShowMediaPicker(true)}
+              className="absolute bottom-1 right-1 bg-whatsapp-teal text-white p-3 rounded-full shadow-lg cursor-pointer hover:scale-110 active:scale-95 transition-all border-4 border-white"
+            >
               <Camera size={20} />
-              <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-            </label>
+            </button>
           </div>
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Foto do Talhão</span>
         </div>
@@ -217,6 +221,13 @@ const NewLavouraPage = () => {
           <Check size={32} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
+      {/* Seletor de Mídia */}
+      <MediaPicker 
+        isOpen={showMediaPicker}
+        onClose={() => setShowMediaPicker(false)}
+        onSelect={handleImageSelected}
+        multiple={false}
+      />
     </Layout>
   );
 };

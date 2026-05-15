@@ -8,8 +8,8 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import Layout from '../components/Layout';
+import MediaPicker from '../components/MediaPicker';
 import { useDraggableScroll } from '../hooks/useDraggableScroll';
-import { compressImage } from '../utils/performance';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -45,8 +45,6 @@ const ChatPage = () => {
   // Refs
   const respRef = useRef<HTMLDivElement>(null);
   const editRespRef = useRef<HTMLDivElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Form Novo
@@ -148,18 +146,12 @@ const ChatPage = () => {
   }, []);
 
   // Handlers
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
+  const handleFilesSelected = async (files: File[]) => {
     const isEdit = !!editingAtv;
 
     for (const file of files) {
-      // Compress image before upload
-      const compressedFile = await compressImage(file);
-      
       const formData = new FormData();
-      formData.append('file', compressedFile, file.name);
+      formData.append('file', file);
       const data = await uploadMutation.mutateAsync(formData);
       
       if (data.url) {
@@ -174,7 +166,6 @@ const ChatPage = () => {
         }
       }
     }
-    e.target.value = '';
   };
 
   const handleCreate = () => {
@@ -293,36 +284,12 @@ const ChatPage = () => {
 
         {/* Input Bar - FIXADA NO RODAPÉ */}
         <div className="fixed bottom-0 left-0 right-0 bg-white p-3 flex items-center gap-3 border-t border-gray-100 z-50 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-          <div className="relative">
-            <button 
-              onClick={() => setShowMediaOptions(!showMediaOptions)} 
-              className="p-3 bg-teal-50 text-whatsapp-teal rounded-full hover:bg-teal-100 active:scale-95 transition-all"
-            >
-              {uploadMutation.isPending ? <div className="w-5 h-5 border-2 border-whatsapp-teal border-t-transparent animate-spin rounded-full" /> : <ImageIcon size={22} />}
-            </button>
-            
-            {showMediaOptions && (
-              <div className="absolute bottom-full left-0 mb-4 w-40 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 animate-in slide-in-from-bottom-2 duration-200">
-                <button 
-                  onClick={() => { cameraInputRef.current?.click(); setShowMediaOptions(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors"
-                >
-                  <ImageIcon size={18} className="text-whatsapp-teal" />
-                  Câmera
-                </button>
-                <button 
-                  onClick={() => { galleryInputRef.current?.click(); setShowMediaOptions(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors"
-                >
-                  <LayoutGrid size={18} className="text-blue-500" />
-                  Galeria
-                </button>
-              </div>
-            )}
-          </div>
-          
-          <input type="file" hidden ref={cameraInputRef} onChange={(e) => handleFileUpload(e)} accept="image/*" capture="environment" multiple />
-          <input type="file" hidden ref={galleryInputRef} onChange={(e) => handleFileUpload(e)} accept="image/*" multiple />
+          <button 
+            onClick={() => setShowMediaOptions(true)} 
+            className="p-3 bg-teal-50 text-whatsapp-teal rounded-full hover:bg-teal-100 active:scale-95 transition-all"
+          >
+            {uploadMutation.isPending ? <div className="w-5 h-5 border-2 border-whatsapp-teal border-t-transparent animate-spin rounded-full" /> : <ImageIcon size={22} />}
+          </button>
           
           <div className="flex-1 bg-gray-50 border border-gray-100 rounded-3xl px-4 py-3 flex items-center focus-within:ring-2 focus-within:ring-whatsapp-teal/20 transition-all">
             <input 
@@ -374,7 +341,7 @@ const ChatPage = () => {
                       <button onClick={() => setNewAtvForm({...newAtvForm, fotos: newAtvForm.fotos.filter((_, i) => i !== idx)})} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md"><X size={10} /></button>
                     </div>
                   ))}
-                  <button onClick={() => galleryInputRef.current?.click()} className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-whatsapp-teal hover:border-whatsapp-teal transition-all"><Plus size={24} /></button>
+                  <button onClick={() => setShowMediaOptions(true)} className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-whatsapp-teal hover:border-whatsapp-teal transition-all"><Plus size={24} /></button>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-2">Descrição</label>
@@ -476,7 +443,7 @@ const ChatPage = () => {
                      </div>
                    ))}
                    <button 
-                    onClick={() => galleryInputRef.current?.click()} 
+                    onClick={() => setShowMediaOptions(true)} 
                     className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-whatsapp-teal hover:border-whatsapp-teal transition-all"
                    >
                     <Plus size={24} />
@@ -569,6 +536,13 @@ const ChatPage = () => {
           <img src={lightboxImage} className="max-w-full max-h-full object-contain rounded-lg" />
         </div>
       )}
+
+      {/* Seletor de Mídia Centralizado */}
+      <MediaPicker 
+        isOpen={showMediaOptions} 
+        onClose={() => setShowMediaOptions(false)} 
+        onSelect={handleFilesSelected} 
+      />
     </Layout>
   );
 };

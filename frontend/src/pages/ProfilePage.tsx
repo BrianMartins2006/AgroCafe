@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, Lock, Camera, Check } from 'lucide-react';
 import Layout from '../components/Layout';
+import MediaPicker from '../components/MediaPicker';
 
 interface UserProfile {
   id_usuario: number;
@@ -14,6 +15,7 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
   
   const [form, setForm] = useState({
     nome: '',
@@ -39,8 +41,8 @@ const ProfilePage = () => {
       });
   }, []);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFilesSelected = async (files: File[]) => {
+    const file = files[0];
     if (!file) return;
 
     const formData = new FormData();
@@ -113,10 +115,12 @@ const ProfilePage = () => {
                 <User size={80} className="text-gray-300" />
               )}
             </div>
-            <label className="absolute bottom-1 right-1 w-12 h-12 bg-whatsapp-teal text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all border-4 border-white cursor-pointer">
+            <button 
+              onClick={() => setShowMediaPicker(true)}
+              className="absolute bottom-1 right-1 w-12 h-12 bg-whatsapp-teal text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all border-4 border-white cursor-pointer"
+            >
               <Camera size={20} />
-              <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
-            </label>
+            </button>
           </div>
           <h2 className="mt-6 text-2xl font-black text-gray-900">{profile?.nome || 'Carregando...'}</h2>
           <p className="text-gray-400 font-medium">{profile?.email}</p>
@@ -190,6 +194,13 @@ const ProfilePage = () => {
           <p className="text-center text-[10px] text-gray-300 mt-8 font-black uppercase tracking-widest">AgroCafé • Segurança de Dados</p>
         </div>
       </div>
+      {/* Seletor de Mídia */}
+      <MediaPicker 
+        isOpen={showMediaPicker}
+        onClose={() => setShowMediaPicker(false)}
+        onSelect={handleFilesSelected}
+        multiple={false}
+      />
     </Layout>
   );
 };
