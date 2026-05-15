@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class Atividade(db.Model):
     __tablename__ = 'atividade'
@@ -7,7 +7,7 @@ class Atividade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_lavoura_fk = db.Column(db.Integer, db.ForeignKey('lavoura.id'), nullable=False)
     id_tipo_atividade_fk = db.Column(db.Integer, db.ForeignKey('tipo_atividade.id'), nullable=False)
-    data = db.Column(db.DateTime, default=datetime.utcnow)
+    data = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     descricao = db.Column(db.Text, nullable=True)
     responsavel = db.Column(db.String(100), nullable=True)
     
@@ -20,7 +20,7 @@ class Atividade(db.Model):
             'id': self.id,
             'id_lavoura': self.id_lavoura_fk,
             'tipo': self.tipo.to_dict() if self.tipo else None,
-            'data': self.data.isoformat(),
+            'data': self.data.isoformat() + 'Z',
             'descricao': self.descricao,
             'responsavel': self.responsavel,
             'imagens': [img.to_dict() for img in self.imagens]

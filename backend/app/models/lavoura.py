@@ -33,7 +33,7 @@ class Lavoura(db.Model):
             'localizacao': self.localizacao,
             'data_inicio': self.data_inicio.isoformat() if self.data_inicio else None,
             'is_pinned': self.is_pinned,
-            'ultima_atividade_date': self.ultima_atividade_date.isoformat() if self.ultima_atividade_date else None,
+            'ultima_atividade_date': self.ultima_atividade_date.isoformat() + 'Z' if self.ultima_atividade_date else None,
             'id_usuario_fk': self.id_usuario_fk
         }
 

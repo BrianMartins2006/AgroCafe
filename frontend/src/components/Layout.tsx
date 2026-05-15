@@ -4,6 +4,7 @@ import {
   ArrowLeft, Search, 
   UserCircle, MessageSquare, LayoutGrid, BarChart2
 } from 'lucide-react';
+import { getMediaUrl } from '../utils/media';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,7 +17,6 @@ interface LayoutProps {
   showTabs?: boolean;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || '';
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, 
@@ -71,7 +71,7 @@ const Layout: React.FC<LayoutProps> = ({
           >
             {avatarUrl && (
               <img 
-                src={avatarUrl.startsWith('http') ? avatarUrl : (API_URL + avatarUrl)} 
+                src={getMediaUrl(avatarUrl)} 
                 alt="Avatar" 
                 className="w-10 h-10 rounded-full object-cover border border-white/20 shrink-0 bg-white/10" 
               />

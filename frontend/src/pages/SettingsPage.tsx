@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
+import { api } from '../services/api';
+import { LogOut, User as UserIcon } from 'lucide-react';
+import { getMediaUrl } from '../utils/media';
 
 interface UserProfile {
   id_usuario: number;
@@ -53,6 +56,7 @@ const SettingsPage = () => {
   const [editingTipo, setEditingTipo] = useState<TipoAtividade | null>(null);
   const [form, setForm] = useState({ nome: '', icone: 'Sprout', cor: 'bg-whatsapp-green' });
   const [saving, setSaving] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   
   // PWA Install Prompt
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -77,7 +81,7 @@ const SettingsPage = () => {
           <p className="mt-2">• <b>Android:</b> Clique nos 3 pontinhos do menu e selecione "Instalar Aplicativo".</p>
           <button onClick={() => toast.dismiss(t.id)} className="mt-2 bg-whatsapp-teal text-white px-2 py-1 rounded">Ok</button>
         </div>
-      ), { duration: 6000 });
+      ), { duration: 4000 });
     }
   };
 
@@ -89,6 +93,19 @@ const SettingsPage = () => {
     }
   };
 
+  const handleLogout = async () => {
+    if (window.confirm("Deseja realmente sair da sua conta?")) {
+      try {
+        await api.post('/api/v1/auth/logout', {});
+        localStorage.removeItem('isOnboarded'); 
+        window.location.href = '/login';
+      } catch (err) {
+        console.error("Erro ao sair:", err);
+        window.location.href = '/login';
+      }
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -96,8 +113,8 @@ const SettingsPage = () => {
   const loadData = async () => {
     try {
       const [profRes, tiposRes] = await Promise.all([
-        fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/perfil'),
-        fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/tipos-atividade')
+        api.get('/api/v1/perfil'),
+        api.get('/api/v1/tipos-atividade')
       ]);
       setProfile(await profRes.json());
       setTipos(await tiposRes.json());
@@ -123,14 +140,8 @@ const SettingsPage = () => {
     if (!form.nome.trim()) return;
     setSaving(true);
     try {
-      const url = (import.meta.env.VITE_API_URL || '') + (editingTipo ? `/api/v1/tipos-atividade/${editingTipo.id}` : '/api/v1/tipos-atividade');
-      const method = editingTipo ? 'PUT' : 'POST';
-      
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
+      const endpoint = editingTipo ? `/api/v1/tipos-atividade/${editingTipo.id}` : '/api/v1/tipos-atividade';
+      const res = await (editingTipo ? api.put(endpoint, form) : api.post(endpoint, form));
 
       if (res.ok) {
         setShowModal(false);
@@ -158,7 +169,7 @@ const SettingsPage = () => {
             onClick={async () => {
               toast.dismiss(t.id);
               try {
-                const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/tipos-atividade/${id}`, { method: 'DELETE' });
+                const res = await api.delete(`/api/v1/tipos-atividade/${id}`);
                 if (res.ok) {
                   loadData();
                   toast.success("Excluída com sucesso");
@@ -182,7 +193,7 @@ const SettingsPage = () => {
           </button>
         </div>
       </div>
-    ), { duration: 5000 });
+    ), { duration: 4000 });
   };
 
   // Função para renderizar o ícone correto
@@ -199,11 +210,17 @@ const SettingsPage = () => {
           onClick={() => navigate('/perfil')}
           className="bg-white p-6 rounded-[2rem] shadow-sm flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition-all border border-gray-50 group"
         >
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-md">
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              profile?.foto_url && setLightboxImage(getMediaUrl(profile.foto_url));
+            }}
+            className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-md active:scale-90 transition-all cursor-pointer"
+          >
             {profile?.foto_url ? (
-              <img src={profile.foto_url?.startsWith('http') ? profile.foto_url : (import.meta.env.VITE_API_URL || '') + profile.foto_url} alt="Profile" className="w-full h-full object-cover" />
+              <img src={getMediaUrl(profile.foto_url)} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <User size={32} className="text-gray-300" />
+              <UserIcon size={32} className="text-gray-300" />
             )}
           </div>
           <div className="flex-1">
@@ -301,6 +318,18 @@ const SettingsPage = () => {
             ))}
           </div>
         </div>
+
+        {/* Logout Section */}
+        <div className="px-2 pb-10">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-3 p-5 bg-red-50 text-red-600 rounded-[2rem] font-black hover:bg-red-100 transition-all active:scale-95 border border-red-100"
+          >
+            <LogOut size={24} />
+            SAIR DA CONTA
+          </button>
+          <p className="text-center text-[9px] text-gray-300 mt-6 font-black uppercase tracking-widest">AgroCafé v2.0 • Protegido por Antigravity</p>
+        </div>
       </div>
 
       {/* MODAL: ADD/EDIT CATEGORY */}
@@ -367,6 +396,28 @@ const SettingsPage = () => {
                 {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><Check size={18} /> SALVAR</>}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Lightbox Style WhatsApp */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black z-[200] flex flex-col animate-in fade-in duration-200"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="p-4 flex items-center justify-between text-white bg-black/40 backdrop-blur-md absolute top-0 left-0 right-0 z-10">
+            <div className="flex items-center gap-3">
+              <span className="font-bold">{profile?.nome}</span>
+            </div>
+            <button onClick={() => setLightboxImage(null)} className="p-2"><X size={24} /></button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-2">
+            <img 
+              src={lightboxImage} 
+              alt="" 
+              className="max-w-full max-h-[80vh] object-contain shadow-2xl animate-in zoom-in-95 duration-300" 
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}

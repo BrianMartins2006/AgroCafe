@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
+import { api } from '../services/api';
 
 interface Maquinario {
   id_maquina: number;
@@ -27,18 +28,17 @@ const MaquinariosPage = () => {
     consumo_medio: ''
   });
 
-  const loadMaquinarios = () => {
+  const loadMaquinarios = async () => {
     setLoading(true);
-    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/maquinarios')
-      .then(res => res.json())
-      .then(data => {
-        setMaquinarios(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Erro ao buscar maquinários:", err);
-        setLoading(false);
-      });
+    try {
+      const res = await api.get('/api/v1/maquinarios');
+      const data = await res.json();
+      setMaquinarios(data);
+    } catch (err) {
+      console.error("Erro ao buscar maquinários:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -48,14 +48,9 @@ const MaquinariosPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingMaq ? 'PUT' : 'POST';
-    const url = (import.meta.env.VITE_API_URL || '') + (editingMaq ? `/api/v1/maquinarios/${editingMaq.id_maquina}` : '/api/v1/maquinarios');
-
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
+      const endpoint = editingMaq ? `/api/v1/maquinarios/${editingMaq.id_maquina}` : '/api/v1/maquinarios';
+      const res = await (editingMaq ? api.put(endpoint, form) : api.post(endpoint, form));
 
       if (res.ok) {
         setIsModalOpen(false);
@@ -82,7 +77,7 @@ const MaquinariosPage = () => {
             onClick={async () => {
               toast.dismiss(t.id);
               try {
-                const res = await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/maquinarios/${id}`, { method: 'DELETE' });
+                const res = await api.delete(`/api/v1/maquinarios/${id}`);
                 if (res.ok) {
                   loadMaquinarios();
                   toast.success("Excluído com sucesso");
@@ -103,7 +98,7 @@ const MaquinariosPage = () => {
           </button>
         </div>
       </div>
-    ), { duration: 5000 });
+    ), { duration: 4000 });
   };
 
   const openEdit = (maq: Maquinario) => {
