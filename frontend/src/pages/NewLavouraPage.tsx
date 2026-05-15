@@ -49,7 +49,7 @@ const NewLavouraPage = () => {
       
       return { previousLavouras };
     },
-    onError: (err, newLavoura, context: any) => {
+    onError: (_err, _newLavoura, context: any) => {
       queryClient.setQueryData(['lavouras'], context.previousLavouras);
     },
     onSettled: () => {
