@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import LavourasPage from './pages/LavourasPage';
@@ -17,7 +17,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,8 +29,8 @@ const queryClient = new QueryClient({
   },
 });
 
-// Usando localStorage para máxima compatibilidade (incluindo modo anônimo e celular)
-const persister = createSyncStoragePersister({
+// Usando localStorage para máxima compatibilidade
+const persister = createAsyncStoragePersister({
   storage: window.localStorage,
 });
 
