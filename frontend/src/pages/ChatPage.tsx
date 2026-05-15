@@ -39,10 +39,14 @@ const ChatPage = () => {
   const [editingAtv, setEditingAtv] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showRespDropdown, setShowRespDropdown] = useState(false);
+  const [showMediaOptions, setShowMediaOptions] = useState(false);
+  const [isEditingRespDropdown, setIsEditingRespDropdown] = useState(false);
 
   // Refs
   const respRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editRespRef = useRef<HTMLDivElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Form Novo
@@ -137,15 +141,18 @@ const ChatPage = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (respRef.current && !respRef.current.contains(event.target as Node)) setShowRespDropdown(false);
+      if (editRespRef.current && !editRespRef.current.contains(event.target as Node)) setIsEditingRespDropdown(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Handlers
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
+
+    const isEdit = !!editingAtv;
 
     for (const file of files) {
       // Compress image before upload
@@ -286,13 +293,36 @@ const ChatPage = () => {
 
         {/* Input Bar - FIXADA NO RODAPÉ */}
         <div className="fixed bottom-0 left-0 right-0 bg-white p-3 flex items-center gap-3 border-t border-gray-100 z-50 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-          <button 
-            onClick={() => fileInputRef.current?.click()} 
-            className="p-3 bg-teal-50 text-whatsapp-teal rounded-full hover:bg-teal-100 active:scale-95 transition-all"
-          >
-            {uploadMutation.isPending ? <div className="w-5 h-5 border-2 border-whatsapp-teal border-t-transparent animate-spin rounded-full" /> : <ImageIcon size={22} />}
-          </button>
-          <input type="file" hidden ref={fileInputRef} onChange={(e) => handleFileUpload(e)} accept="image/*" capture="environment" multiple />
+          <div className="relative">
+            <button 
+              onClick={() => setShowMediaOptions(!showMediaOptions)} 
+              className="p-3 bg-teal-50 text-whatsapp-teal rounded-full hover:bg-teal-100 active:scale-95 transition-all"
+            >
+              {uploadMutation.isPending ? <div className="w-5 h-5 border-2 border-whatsapp-teal border-t-transparent animate-spin rounded-full" /> : <ImageIcon size={22} />}
+            </button>
+            
+            {showMediaOptions && (
+              <div className="absolute bottom-full left-0 mb-4 w-40 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 animate-in slide-in-from-bottom-2 duration-200">
+                <button 
+                  onClick={() => { cameraInputRef.current?.click(); setShowMediaOptions(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors"
+                >
+                  <ImageIcon size={18} className="text-whatsapp-teal" />
+                  Câmera
+                </button>
+                <button 
+                  onClick={() => { galleryInputRef.current?.click(); setShowMediaOptions(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-sm font-bold text-gray-700 transition-colors"
+                >
+                  <LayoutGrid size={18} className="text-blue-500" />
+                  Galeria
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <input type="file" hidden ref={cameraInputRef} onChange={(e) => handleFileUpload(e)} accept="image/*" capture="environment" multiple />
+          <input type="file" hidden ref={galleryInputRef} onChange={(e) => handleFileUpload(e)} accept="image/*" multiple />
           
           <div className="flex-1 bg-gray-50 border border-gray-100 rounded-3xl px-4 py-3 flex items-center focus-within:ring-2 focus-within:ring-whatsapp-teal/20 transition-all">
             <input 
@@ -323,8 +353,18 @@ const ChatPage = () => {
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
               <div className="bg-whatsapp-teal p-6 text-white flex justify-between items-center">
-                <h3 className="text-xl font-black">Registrar Atividade</h3>
-                <button onClick={() => setShowNewModal(false)}><X size={20} /></button>
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={lavoura?.foto_perfil ? (lavoura.foto_perfil.startsWith('http') ? lavoura.foto_perfil : (API_URL + lavoura.foto_perfil)) : "/images/default-lavoura.jpg"} 
+                    className="w-10 h-10 rounded-full border-2 border-white/20 object-cover" 
+                    alt="" 
+                  />
+                  <div>
+                    <h3 className="text-lg font-black leading-tight">Novo Registro</h3>
+                    <p className="text-[10px] font-bold text-white/70 uppercase tracking-wider">{lavoura?.nome}</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowNewModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-all"><X size={20} /></button>
               </div>
               <div className="p-8 pb-10 space-y-6 overflow-y-auto no-scrollbar relative">
                 <div className="grid grid-cols-3 gap-2">
@@ -399,23 +439,107 @@ const ChatPage = () => {
           </div>
         )}
 
-        {/* MODAL: EDITAR (Simplificado para o exemplo) */}
+        {/* MODAL: EDITAR COMPLETO */}
         {editingAtv && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-             <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+             <div className="bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
                <div className="bg-whatsapp-teal p-6 text-white flex justify-between items-center">
-                 <h3 className="text-xl font-black">Editar Registro</h3>
-                 <button onClick={() => setEditingAtv(null)}><X size={20} /></button>
+                <div className="flex items-center gap-3">
+                    <img 
+                      src={lavoura?.foto_perfil ? (lavoura.foto_perfil.startsWith('http') ? lavoura.foto_perfil : (API_URL + lavoura.foto_perfil)) : "/images/default-lavoura.jpg"} 
+                      className="w-10 h-10 rounded-full border-2 border-white/20 object-cover" 
+                      alt="" 
+                    />
+                    <div>
+                      <h3 className="text-lg font-black leading-tight">Editar Registro</h3>
+                      <p className="text-[10px] font-bold text-white/70 uppercase tracking-wider">{lavoura?.nome}</p>
+                    </div>
+                  </div>
+                 <button onClick={() => setEditingAtv(null)} className="p-2 hover:bg-white/10 rounded-full transition-all"><X size={20} /></button>
                </div>
-               <div className="p-8 space-y-4 overflow-y-auto">
-                  <textarea 
-                    value={editingAtv.descricao} 
-                    onChange={e => setEditingAtv({...editingAtv, descricao: e.target.value})} 
-                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm min-h-[100px] outline-none" 
-                  />
+               
+               <div className="p-8 pb-10 space-y-6 overflow-y-auto no-scrollbar relative">
+                 {/* Imagens na Edição */}
+                 <div className="grid grid-cols-3 gap-2">
+                   {editingAtv.imagens.map((img: any, idx: number) => (
+                     <div key={img.id || idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm">
+                       <img src={img.foto_url.startsWith('http') ? img.foto_url : (API_URL + img.foto_url)} className="w-full h-full object-cover" />
+                       <button 
+                         onClick={() => setEditingAtv({
+                           ...editingAtv, 
+                           imagens: editingAtv.imagens.filter((_: any, i: number) => i !== idx)
+                         })} 
+                         className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md"
+                       >
+                         <X size={10} />
+                       </button>
+                     </div>
+                   ))}
+                   <button 
+                    onClick={() => galleryInputRef.current?.click()} 
+                    className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-whatsapp-teal hover:border-whatsapp-teal transition-all"
+                   >
+                    <Plus size={24} />
+                   </button>
+                 </div>
+
+                 <div>
+                   <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-2">Descrição</label>
+                   <textarea 
+                     value={editingAtv.descricao} 
+                     onChange={e => setEditingAtv({...editingAtv, descricao: e.target.value})} 
+                     className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm min-h-[100px] outline-none focus:ring-1 focus:ring-whatsapp-teal" 
+                   />
+                 </div>
+
+                 <div>
+                   <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-2">Categoria</label>
+                   <div className="flex flex-wrap gap-2">
+                     {tipos.map((t: any) => (
+                       <button 
+                         key={t.id} 
+                         onClick={() => setEditingAtv({...editingAtv, tipo: t})} 
+                         className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-1 transition-all ${editingAtv.tipo.id === t.id ? `${t.cor} text-white shadow-lg scale-105` : 'bg-gray-100 text-gray-500'}`}
+                       >
+                         {renderIcon(t.icone, 12)} {t.nome}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
+
+                 <div className="relative" ref={editRespRef}>
+                   <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-2">Responsável</label>
+                   <button onClick={() => setIsEditingRespDropdown(!isEditingRespDropdown)} className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-left flex items-center justify-between hover:bg-gray-100 transition-colors">
+                     <div className="flex items-center gap-3">
+                       <div className="w-8 h-8 rounded-full bg-whatsapp-teal/10 flex items-center justify-center text-whatsapp-teal"><User size={16} /></div>
+                       {editingAtv.responsavel}
+                     </div>
+                     <ChevronDown size={16} className={`text-gray-300 transition-transform ${isEditingRespDropdown ? 'rotate-180' : ''}`} />
+                   </button>
+                   {isEditingRespDropdown && (
+                     <div className="absolute bottom-full mb-2 left-0 w-full bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-gray-100 z-[100] overflow-hidden">
+                       <div className="p-2 space-y-1 max-h-56 overflow-y-auto no-scrollbar">
+                         <button onClick={() => { setEditingAtv({...editingAtv, responsavel: 'Produtor'}); setIsEditingRespDropdown(false); }} className={`w-full p-3 rounded-2xl text-left text-sm font-bold flex items-center justify-between transition-all ${editingAtv.responsavel === 'Produtor' ? 'bg-whatsapp-teal/10 text-whatsapp-teal' : 'hover:bg-gray-50 text-gray-700'}`}>
+                           Produtor (Eu)
+                           {editingAtv.responsavel === 'Produtor' && <Check size={18} />}
+                         </button>
+                         {funcionarios.map((f: any) => (
+                           <button key={f.id_funcionario} onClick={() => { setEditingAtv({...editingAtv, responsavel: f.nome}); setIsEditingRespDropdown(false); }} className={`w-full p-3 rounded-2xl text-left text-sm font-bold flex items-center justify-between transition-all ${editingAtv.responsavel === f.nome ? 'bg-whatsapp-teal/10 text-whatsapp-teal' : 'hover:bg-gray-50 text-gray-700'}`}>
+                             {f.nome}
+                             {editingAtv.responsavel === f.nome && <Check size={18} />}
+                           </button>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               </div>
+
+               <div className="p-8 bg-gray-50">
                   <button 
                     onClick={() => updateMutation.mutate(editingAtv)} 
-                    className="w-full py-4 bg-whatsapp-teal text-white font-black rounded-2xl"
+                    disabled={updateMutation.isPending}
+                    className="w-full py-4 bg-whatsapp-teal text-white font-black rounded-2xl shadow-xl shadow-whatsapp-teal/20 hover:bg-whatsapp-teal-dark active:scale-95 transition-all disabled:opacity-50"
                   >
                     {updateMutation.isPending ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
                   </button>
