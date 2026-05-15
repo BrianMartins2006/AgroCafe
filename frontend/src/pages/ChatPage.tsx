@@ -374,7 +374,7 @@ const ChatPage = () => {
                       <button onClick={() => setNewAtvForm({...newAtvForm, fotos: newAtvForm.fotos.filter((_, i) => i !== idx)})} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md"><X size={10} /></button>
                     </div>
                   ))}
-                  <button onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-whatsapp-teal hover:border-whatsapp-teal transition-all"><Plus size={24} /></button>
+                  <button onClick={() => galleryInputRef.current?.click()} className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-whatsapp-teal hover:border-whatsapp-teal transition-all"><Plus size={24} /></button>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-2">Descrição</label>
