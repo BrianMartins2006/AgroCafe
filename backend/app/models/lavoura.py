@@ -18,10 +18,16 @@ class Lavoura(db.Model):
 
     @property
     def ultima_atividade_date(self):
-        if not self.atividades:
-            return None
-        # Retorna a data da atividade mais recente
-        return max(a.data for a in self.atividades)
+        # Se as atividades já estiverem carregadas (joinedload), usamos o cache local
+        if 'atividades' in self.__dict__:
+            if not self.atividades:
+                return None
+            return max((a.data for a in self.atividades), default=None)
+        
+        # Caso contrário, fazemos uma query rápida focada apenas no último valor
+        from app.models import Atividade
+        last_act = Atividade.query.filter_by(id_lavoura_fk=self.id).order_by(Atividade.data.desc()).first()
+        return last_act.data if last_act else None
 
     def to_dict(self):
         return {

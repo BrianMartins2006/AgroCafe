@@ -129,9 +129,11 @@ def health_check():
 @api.route('/lavouras', methods=['GET'])
 @login_required
 def get_lavouras():
-    # Migração on-the-fly: Vincular lavouras sem dono ao usuário atual
-    Lavoura.query.filter(Lavoura.id_usuario_fk.is_(None)).update({Lavoura.id_usuario_fk: current_user.id})
-    db.session.commit()
+    # Migração on-the-fly otimizada: Apenas executa se houver registros órfãos
+    orphans_count = Lavoura.query.filter(Lavoura.id_usuario_fk.is_(None)).count()
+    if orphans_count > 0:
+        Lavoura.query.filter(Lavoura.id_usuario_fk.is_(None)).update({Lavoura.id_usuario_fk: current_user.id})
+        db.session.commit()
     
     lavouras = (Lavoura.query
                 .options(joinedload(Lavoura.atividades))

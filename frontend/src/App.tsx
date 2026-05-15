@@ -23,9 +23,9 @@ import { get, set, del } from 'idb-keyval';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutos de cache "fresco"
-      gcTime: 1000 * 60 * 60 * 24, // 24 horas até o lixo ser coletado do cache (persistente)
-      retry: false, // Evita loop de retentativas se der 401
+      staleTime: 1000 * 60 * 30, // 30 minutos de cache "fresco"
+      gcTime: 1000 * 60 * 60 * 24 * 7, // 7 dias até o lixo ser coletado do cache (persistente)
+      retry: 1, // Tenta uma vez se falhar antes de desistir
     },
   },
 });
