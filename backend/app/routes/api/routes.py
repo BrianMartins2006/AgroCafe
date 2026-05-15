@@ -323,6 +323,7 @@ def delete_atividade(id):
     return '', 204
 
 @api.route('/upload', methods=['POST'])
+@login_required
 def upload_file():
     if 'file' not in request.files:
         return jsonify({"erro": "Nenhum arquivo enviado"}), 400
@@ -375,6 +376,7 @@ def upload_file():
             return jsonify({"erro": f"Erro Cloudinary: {str(e)}"}), 500
 
 @api.route('/tipos-atividade', methods=['POST'])
+@login_required
 def create_tipo_atividade():
     data = request.json
     novo_tipo = TipoAtividade(
@@ -387,6 +389,7 @@ def create_tipo_atividade():
     return jsonify(novo_tipo.to_dict()), 201
 
 @api.route('/tipos-atividade/<int:id>', methods=['PUT', 'DELETE'])
+@login_required
 def handle_tipo_atividade(id):
     tipo = TipoAtividade.query.get_or_404(id)
     
@@ -409,6 +412,7 @@ def handle_tipo_atividade(id):
         return jsonify({"message": "Tipo de atividade excluído"}), 200
 
 @api.route('/tipos-atividade', methods=['GET'])
+@login_required
 def get_tipos_atividade():
     tipos = TipoAtividade.query.all()
     return jsonify([t.to_dict() for t in tipos])
@@ -440,8 +444,11 @@ def create_funcionario():
     return jsonify(novo.to_dict()), 201
 
 @api.route('/funcionarios/<int:id>', methods=['PUT', 'DELETE'])
+@login_required
 def handle_funcionario(id):
     func = Funcionario.query.get_or_404(id)
+    if func.id_usuario_fk and func.id_usuario_fk != current_user.id:
+        return jsonify({"erro": "Acesso negado"}), 403
     if request.method == 'PUT':
         data = request.json
         func.nome = data.get('nome', func.nome)
@@ -480,8 +487,11 @@ def create_maquinario():
     return jsonify(novo.to_dict()), 201
 
 @api.route('/maquinarios/<int:id>', methods=['PUT', 'DELETE'])
+@login_required
 def handle_maquinario(id):
     maquina = Maquinario.query.get_or_404(id)
+    if maquina.id_usuario_fk and maquina.id_usuario_fk != current_user.id:
+        return jsonify({"erro": "Acesso negado"}), 403
     if request.method == 'PUT':
         data = request.json
         maquina.tipo = data.get('tipo', maquina.tipo)
