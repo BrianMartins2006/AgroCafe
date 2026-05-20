@@ -6,6 +6,8 @@ import {
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 import { api } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 interface Funcionario {
   id_funcionario: number;
@@ -16,6 +18,7 @@ interface Funcionario {
 }
 
 const FuncionariosPage = () => {
+  const queryClient = useQueryClient();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,6 +59,7 @@ const FuncionariosPage = () => {
         setEditingFunc(null);
         setForm({ nome: '', cargo: '', salario_hora: '', contato: '' });
         toast.success(editingFunc ? "Funcionário atualizado!" : "Funcionário cadastrado!");
+        queryClient.invalidateQueries({ queryKey: ['funcionarios'] });
         loadFuncionarios();
       } else {
         toast.error("Erro ao salvar funcionário.");
@@ -78,6 +82,7 @@ const FuncionariosPage = () => {
               try {
                 const res = await api.delete(`/api/v1/funcionarios/${id}`);
                 if (res.ok) {
+                  queryClient.invalidateQueries({ queryKey: ['funcionarios'] });
                   loadFuncionarios();
                   toast.success("Excluído com sucesso");
                 }

@@ -11,6 +11,8 @@ import toast from 'react-hot-toast';
 import { api } from '../services/api';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import { getMediaUrl } from '../utils/media';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 interface UserProfile {
   id_usuario: number;
@@ -48,6 +50,7 @@ const ICONS_MAP: any = {
 
 const SettingsPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tipos, setTipos] = useState<TipoAtividade[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,6 +149,7 @@ const SettingsPage = () => {
       if (res.ok) {
         setShowModal(false);
         toast.success(editingTipo ? "Categoria atualizada!" : "Categoria salva!");
+        queryClient.invalidateQueries({ queryKey: ['tipos-atividade'] });
         loadData();
       } else {
         const errorData = await res.json();
@@ -171,6 +175,7 @@ const SettingsPage = () => {
               try {
                 const res = await api.delete(`/api/v1/tipos-atividade/${id}`);
                 if (res.ok) {
+                  queryClient.invalidateQueries({ queryKey: ['tipos-atividade'] });
                   loadData();
                   toast.success("Excluída com sucesso");
                 } else {
