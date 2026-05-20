@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Plus, Edit, Trash2, User, 
   Briefcase, DollarSign, Phone, Search, X, Check 
@@ -6,7 +6,7 @@ import {
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 import { api } from '../services/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 
 interface Funcionario {
@@ -19,8 +19,11 @@ interface Funcionario {
 
 const FuncionariosPage = () => {
   const queryClient = useQueryClient();
-  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: funcionarios = [], isLoading: loading } = useQuery({
+    queryKey: ['funcionarios'],
+    queryFn: () => api.get('/api/v1/funcionarios').then(res => res.json())
+  });
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFunc, setEditingFunc] = useState<Funcionario | null>(null);
   
@@ -30,23 +33,6 @@ const FuncionariosPage = () => {
     salario_hora: '',
     contato: ''
   });
-
-  const loadFuncionarios = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/api/v1/funcionarios');
-      const data = await res.json();
-      setFuncionarios(data);
-    } catch (err) {
-      console.error("Erro ao buscar funcionários:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadFuncionarios();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +46,6 @@ const FuncionariosPage = () => {
         setForm({ nome: '', cargo: '', salario_hora: '', contato: '' });
         toast.success(editingFunc ? "Funcionário atualizado!" : "Funcionário cadastrado!");
         queryClient.invalidateQueries({ queryKey: ['funcionarios'] });
-        loadFuncionarios();
       } else {
         toast.error("Erro ao salvar funcionário.");
       }
@@ -83,7 +68,6 @@ const FuncionariosPage = () => {
                 const res = await api.delete(`/api/v1/funcionarios/${id}`);
                 if (res.ok) {
                   queryClient.invalidateQueries({ queryKey: ['funcionarios'] });
-                  loadFuncionarios();
                   toast.success("Excluído com sucesso");
                 }
               } catch (err) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Plus, Edit, Trash2, Truck, 
   Settings, DollarSign, Zap, X, Check 
@@ -6,6 +6,7 @@ import {
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 import { api } from '../services/api';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface Maquinario {
   id_maquina: number;
@@ -16,8 +17,12 @@ interface Maquinario {
 }
 
 const MaquinariosPage = () => {
-  const [maquinarios, setMaquinarios] = useState<Maquinario[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: maquinarios = [], isLoading: loading } = useQuery({
+    queryKey: ['maquinarios'],
+    queryFn: () => api.get('/api/v1/maquinarios').then(res => res.json())
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMaq, setEditingMaq] = useState<Maquinario | null>(null);
   
@@ -27,23 +32,6 @@ const MaquinariosPage = () => {
     valor_hora: '',
     consumo_medio: ''
   });
-
-  const loadMaquinarios = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/api/v1/maquinarios');
-      const data = await res.json();
-      setMaquinarios(data);
-    } catch (err) {
-      console.error("Erro ao buscar maquinários:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadMaquinarios();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +44,7 @@ const MaquinariosPage = () => {
         setEditingMaq(null);
         setForm({ tipo: '', modelo: '', valor_hora: '', consumo_medio: '' });
         toast.success(editingMaq ? "Máquina atualizada!" : "Máquina cadastrada!");
-        loadMaquinarios();
+        queryClient.invalidateQueries({ queryKey: ['maquinarios'] });
       } else {
         toast.error("Erro ao salvar máquina.");
       }
@@ -78,7 +66,7 @@ const MaquinariosPage = () => {
               try {
                 const res = await api.delete(`/api/v1/maquinarios/${id}`);
                 if (res.ok) {
-                  loadMaquinarios();
+                  queryClient.invalidateQueries({ queryKey: ['maquinarios'] });
                   toast.success("Excluído com sucesso");
                 }
               } catch (err) {

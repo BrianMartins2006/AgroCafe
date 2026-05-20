@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import { api } from '../services/api';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import { getMediaUrl } from '../utils/media';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 
 interface UserProfile {
@@ -51,9 +51,18 @@ const ICONS_MAP: any = {
 const SettingsPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [tipos, setTipos] = useState<TipoAtividade[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const { data: profile, isLoading: loadProfile } = useQuery({
+    queryKey: ['perfil'],
+    queryFn: () => api.get('/api/v1/perfil').then(res => res.json())
+  });
+
+  const { data: tipos = [], isLoading: loadTipos } = useQuery({
+    queryKey: ['tipos-atividade'],
+    queryFn: () => api.get('/api/v1/tipos-atividade').then(res => res.json())
+  });
+
+  const loading = loadProfile || loadTipos;
   
   const [showModal, setShowModal] = useState(false);
   const [editingTipo, setEditingTipo] = useState<TipoAtividade | null>(null);
@@ -109,25 +118,6 @@ const SettingsPage = () => {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [profRes, tiposRes] = await Promise.all([
-        api.get('/api/v1/perfil'),
-        api.get('/api/v1/tipos-atividade')
-      ]);
-      setProfile(await profRes.json());
-      setTipos(await tiposRes.json());
-      setLoading(false);
-    } catch (err) {
-      console.error("Erro ao carregar dados:", err);
-      setLoading(false);
-    }
-  };
-
   const handleOpenModal = (tipo?: TipoAtividade) => {
     if (tipo) {
       setEditingTipo(tipo);
@@ -150,7 +140,6 @@ const SettingsPage = () => {
         setShowModal(false);
         toast.success(editingTipo ? "Categoria atualizada!" : "Categoria salva!");
         queryClient.invalidateQueries({ queryKey: ['tipos-atividade'] });
-        loadData();
       } else {
         const errorData = await res.json();
         toast.error(errorData.erro || "Erro ao salvar categoria");
@@ -176,7 +165,6 @@ const SettingsPage = () => {
                 const res = await api.delete(`/api/v1/tipos-atividade/${id}`);
                 if (res.ok) {
                   queryClient.invalidateQueries({ queryKey: ['tipos-atividade'] });
-                  loadData();
                   toast.success("Excluída com sucesso");
                 } else {
                   const data = await res.json();

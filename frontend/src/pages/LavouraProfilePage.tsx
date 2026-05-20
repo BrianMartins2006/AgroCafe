@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Calendar, MapPin, Sprout, Image as ImageIcon, ChevronRight, X } from 'lucide-react';
 import { api } from '../services/api';
 import { getMediaUrl } from '../utils/media';
+import { useQuery } from '@tanstack/react-query';
 
 
 interface Lavoura {
@@ -25,29 +25,21 @@ interface MediaItem {
 const LavouraProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [lavoura, setLavoura] = useState<Lavoura | null>(null);
-  const [media, setMedia] = useState<MediaItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [lavouraRes, mediaRes] = await Promise.all([
-          api.get(`/api/v1/lavouras/${id}`),
-          api.get(`/api/v1/lavouras/${id}/media`)
-        ]);
-        
-        setLavoura(await lavouraRes.json());
-        setMedia(await mediaRes.json());
-      } catch (err) {
-        console.error("Erro ao carregar perfil da lavoura:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, [id]);
+  const { data: lavoura, isLoading: loadingLavoura } = useQuery({
+    queryKey: ['lavouras', id],
+    queryFn: () => api.get(`/api/v1/lavouras/${id}`).then(res => res.json()),
+    enabled: !!id
+  });
+
+  const { data: media = [], isLoading: loadingMedia } = useQuery({
+    queryKey: ['lavouras', id, 'media'],
+    queryFn: () => api.get(`/api/v1/lavouras/${id}/media`).then(res => res.json()),
+    enabled: !!id
+  });
+
+  const loading = loadingLavoura || loadingMedia;
 
   if (loading && !lavoura) {
     return <div className="h-screen flex items-center justify-center bg-gray-50 text-gray-400 italic">Carregando perfil...</div>;

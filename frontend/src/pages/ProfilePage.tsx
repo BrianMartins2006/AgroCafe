@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import MediaPicker from '../components/MediaPicker';
 import { api } from '../services/api';
 import { getMediaUrl } from '../utils/media';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface UserProfile {
   id_usuario: number;
@@ -13,8 +14,12 @@ interface UserProfile {
 }
 
 const ProfilePage = () => {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: profile, isLoading: loading } = useQuery({
+    queryKey: ['perfil'],
+    queryFn: () => api.get('/api/v1/perfil').then(res => res.json())
+  });
+
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
@@ -28,22 +33,14 @@ const ProfilePage = () => {
   const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
-    api.get('/api/v1/perfil')
-      .then(res => res.json())
-      .then(data => {
-        setProfile(data);
-        setForm({
-          nome: data.nome,
-          email: data.email,
-          senha: ''
-        });
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Erro ao buscar perfil:", err);
-        setLoading(false);
+    if (profile) {
+      setForm({
+        nome: profile.nome,
+        email: profile.email,
+        senha: ''
       });
-  }, []);
+    }
+  }, [profile]);
 
   const handleFilesSelected = async (files: File[]) => {
     const file = files[0];
@@ -61,8 +58,7 @@ const ProfilePage = () => {
         const updateRes = await api.put('/api/v1/perfil', { ...form, foto_url: data.url });
 
         if (updateRes.ok) {
-          const updated = await updateRes.json();
-          setProfile(updated);
+          queryClient.invalidateQueries({ queryKey: ['perfil'] });
           setSuccess(true);
           setTimeout(() => setSuccess(false), 3000);
         }
@@ -83,8 +79,7 @@ const ProfilePage = () => {
       const res = await api.put('/api/v1/perfil', { ...form, foto_url: profile?.foto_url });
       
       if (res.ok) {
-        const updated = await res.json();
-        setProfile(updated);
+        queryClient.invalidateQueries({ queryKey: ['perfil'] });
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       }

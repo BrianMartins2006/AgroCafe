@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { 
   XAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area
@@ -13,68 +14,64 @@ import { api } from '../services/api';
 const COLORS = ['#008069', '#25D366', '#34B7F1', '#ECE5DD', '#FFBC2C'];
 
 const DashboardPage = () => {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: lavouras = [], isLoading: loadLav } = useQuery({
+    queryKey: ['lavouras'],
+    queryFn: () => api.get('/api/v1/lavouras').then(res => res.json())
+  });
 
-  useEffect(() => {
-    const loadAllStats = async () => {
-      try {
-        const [lavourasRes, feedRes, funcsRes, maqsRes] = await Promise.all([
-          api.get('/api/v1/lavouras'),
-          api.get('/api/v1/feed'),
-          api.get('/api/v1/funcionarios'),
-          api.get('/api/v1/maquinarios')
-        ]);
+  const { data: atividades = [], isLoading: loadAtv } = useQuery({
+    queryKey: ['feed'],
+    queryFn: () => api.get('/api/v1/feed').then(res => res.json())
+  });
 
-        const [lavouras, atividades, funcionarios, maquinarios] = await Promise.all([
-          lavourasRes.json(),
-          feedRes.json(),
-          funcsRes.json(),
-          maqsRes.json()
-        ]);
-        
-        // Processando dados para os gráficos
-        const atividadesPorTipo = atividades.reduce((acc: any, atv: any) => {
-          const tipo = atv.tipo?.nome || 'Outros';
-          acc[tipo] = (acc[tipo] || 0) + 1;
-          return acc;
-        }, {});
+  const { data: funcionarios = [], isLoading: loadFunc } = useQuery({
+    queryKey: ['funcionarios'],
+    queryFn: () => api.get('/api/v1/funcionarios').then(res => res.json())
+  });
 
-        const pieData = Object.keys(atividadesPorTipo).map(name => ({
-          name, value: atividadesPorTipo[name]
-        }));
+  const { data: maquinarios = [], isLoading: loadMaq } = useQuery({
+    queryKey: ['maquinarios'],
+    queryFn: () => api.get('/api/v1/maquinarios').then(res => res.json())
+  });
 
-        // Atividades por dia (últimos 7 dias)
-        const last7Days = [...Array(7)].map((_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          return d.toISOString().split('T')[0];
-        }).reverse();
+  const loading = loadLav || loadAtv || loadFunc || loadMaq;
 
-        const lineData = last7Days.map(date => ({
-          date: new Date(date).toLocaleDateString('pt-BR', { weekday: 'short' }),
-          count: atividades.filter((a: any) => a.data && a.data.startsWith(date)).length
-        }));
+  const stats = useMemo(() => {
+    if (loading) return null;
 
-        setStats({
-          totalLavouras: lavouras.length,
-          totalAtividades: atividades.length,
-          totalFuncionarios: funcionarios.length,
-          totalMaquinarios: maquinarios.length,
-          pieData,
-          lineData,
-          atividadesRecentes: atividades.slice(0, 5)
-        });
-      } catch (err) {
-        console.error("Erro ao carregar dashboard:", err);
-      } finally {
-        setLoading(false);
-      }
+    const atividadesPorTipo = atividades.reduce((acc: any, atv: any) => {
+      const tipo = atv.tipo?.nome || 'Outros';
+      acc[tipo] = (acc[tipo] || 0) + 1;
+      return acc;
+    }, {});
+
+    const pieData = Object.keys(atividadesPorTipo).map(name => ({
+      name, value: atividadesPorTipo[name]
+    }));
+
+    const last7Days = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toISOString().split('T')[0];
+    }).reverse();
+
+    const lineData = last7Days.map(date => ({
+      date: new Date(date).toLocaleDateString('pt-BR', { weekday: 'short' }),
+      count: atividades.filter((a: any) => a.data && a.data.startsWith(date)).length
+    }));
+
+    return {
+      totalLavouras: lavouras.length,
+      totalAtividades: atividades.length,
+      totalFuncionarios: funcionarios.length,
+      totalMaquinarios: maquinarios.length,
+      pieData,
+      lineData,
+      atividadesRecentes: atividades.slice(0, 5)
     };
-    loadAllStats();
-  }, []);
+  }, [lavouras, atividades, funcionarios, maquinarios, loading]);
 
-  if (loading) {
+  if (loading || !stats) {
     return (
       <Layout title="Dashboard">
         <div className="p-4 space-y-6 pb-24">

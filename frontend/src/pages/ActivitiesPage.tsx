@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, MessageSquare } from 'lucide-react';
 import Layout from '../components/Layout';
 import { api } from '../services/api';
 import { getMediaUrl } from '../utils/media';
+import { useQuery } from '@tanstack/react-query';
 
 interface TipoAtividade {
   id: number;
@@ -23,24 +23,12 @@ interface Atividade {
 }
 
 const ActivitiesPage = () => {
-  const [atividades, setAtividades] = useState<Atividade[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const res = await api.get('/api/v1/feed');
-        const data = await res.json();
-        setAtividades(data);
-      } catch (err) {
-        console.error("Erro ao buscar atividades:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+  const { data: atividades = [], isLoading: loading } = useQuery({
+    queryKey: ['feed'],
+    queryFn: () => api.get('/api/v1/feed').then(res => res.json())
+  });
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
