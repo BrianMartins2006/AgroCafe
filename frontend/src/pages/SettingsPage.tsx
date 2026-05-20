@@ -52,12 +52,12 @@ const SettingsPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading: loadProfile } = useQuery({
+  const { data: profile, isLoading: loadProfile } = useQuery<UserProfile>({
     queryKey: ['perfil'],
     queryFn: () => api.get('/api/v1/perfil').then(res => res.json())
   });
 
-  const { data: tipos = [], isLoading: loadTipos } = useQuery({
+  const { data: tipos = [], isLoading: loadTipos } = useQuery<TipoAtividade[]>({
     queryKey: ['tipos-atividade'],
     queryFn: () => api.get('/api/v1/tipos-atividade').then(res => res.json())
   });

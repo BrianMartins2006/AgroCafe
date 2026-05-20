@@ -19,7 +19,7 @@ interface Funcionario {
 
 const FuncionariosPage = () => {
   const queryClient = useQueryClient();
-  const { data: funcionarios = [], isLoading: loading } = useQuery({
+  const { data: funcionarios = [], isLoading: loading } = useQuery<Funcionario[]>({
     queryKey: ['funcionarios'],
     queryFn: () => api.get('/api/v1/funcionarios').then(res => res.json())
   });

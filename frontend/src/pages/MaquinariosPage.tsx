@@ -18,7 +18,7 @@ interface Maquinario {
 
 const MaquinariosPage = () => {
   const queryClient = useQueryClient();
-  const { data: maquinarios = [], isLoading: loading } = useQuery({
+  const { data: maquinarios = [], isLoading: loading } = useQuery<Maquinario[]>({
     queryKey: ['maquinarios'],
     queryFn: () => api.get('/api/v1/maquinarios').then(res => res.json())
   });

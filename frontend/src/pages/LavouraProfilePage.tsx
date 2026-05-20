@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Calendar, MapPin, Sprout, Image as ImageIcon, ChevronRight, X } from 'lucide-react';
 import { api } from '../services/api';
@@ -27,13 +28,13 @@ const LavouraProfilePage = () => {
   const navigate = useNavigate();
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
-  const { data: lavoura, isLoading: loadingLavoura } = useQuery({
+  const { data: lavoura, isLoading: loadingLavoura } = useQuery<Lavoura>({
     queryKey: ['lavouras', id],
     queryFn: () => api.get(`/api/v1/lavouras/${id}`).then(res => res.json()),
     enabled: !!id
   });
 
-  const { data: media = [], isLoading: loadingMedia } = useQuery({
+  const { data: media = [], isLoading: loadingMedia } = useQuery<MediaItem[]>({
     queryKey: ['lavouras', id, 'media'],
     queryFn: () => api.get(`/api/v1/lavouras/${id}/media`).then(res => res.json()),
     enabled: !!id

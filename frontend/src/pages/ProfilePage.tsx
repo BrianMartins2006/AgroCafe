@@ -15,7 +15,7 @@ interface UserProfile {
 
 const ProfilePage = () => {
   const queryClient = useQueryClient();
-  const { data: profile, isLoading: loading } = useQuery({
+  const { data: profile, isLoading: loading } = useQuery<UserProfile>({
     queryKey: ['perfil'],
     queryFn: () => api.get('/api/v1/perfil').then(res => res.json())
   });
