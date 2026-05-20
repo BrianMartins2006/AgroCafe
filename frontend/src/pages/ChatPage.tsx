@@ -109,7 +109,7 @@ const ChatPage = () => {
         id: Date.now(),
         ...newData,
         id_lavoura: Number(id),
-        tipo: tipos.find((t: any) => t.id === newData.id_tipo_atividade),
+        tipo: tipos.find((t: any) => t.id === newData.id_tipo_atividade) || { id: 0, nome: 'Geral', icone: 'Default', cor: 'bg-gray-500' },
         imagens: newData.fotos.map((url: string) => ({ id: Math.random(), foto_url: url })),
         status: 'pending'
       };
@@ -227,10 +227,12 @@ const ChatPage = () => {
     return <Icon size={size} />;
   };
 
-  const filteredAtividades = atividades.filter((a: any) => {
-    const matchesSearch = a.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          a.tipo.nome.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 0 || a.tipo.id === activeTab;
+  const filteredAtividades = (Array.isArray(atividades) ? atividades : []).filter((a: any) => {
+    const desc = a.descricao || '';
+    const tipoNome = a.tipo?.nome || '';
+    const matchesSearch = desc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          tipoNome.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab = activeTab === 0 || a.tipo?.id === activeTab;
     return matchesSearch && matchesTab;
   });
 
@@ -306,11 +308,11 @@ const ChatPage = () => {
                     <button onClick={() => setDeletingId(atv.id)} className="p-1 text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>
                   </div>
                 </div>
-                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md mb-2 shadow-sm ${atv.tipo.cor}`}>
-                  <div className="text-white">{renderIcon(atv.tipo.icone)}</div>
-                  <span className="text-[8px] font-black text-white uppercase tracking-tighter">{atv.tipo.nome}</span>
+                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md mb-2 shadow-sm ${atv.tipo?.cor || 'bg-gray-500'}`}>
+                  <div className="text-white">{renderIcon(atv.tipo?.icone || 'Default')}</div>
+                  <span className="text-[8px] font-black text-white uppercase tracking-tighter">{atv.tipo?.nome || 'Geral'}</span>
                 </div>
-                <p className="text-[13px] text-gray-800 leading-snug font-medium mb-1 whitespace-pre-wrap">{atv.descricao}</p>
+                <p className="text-[13px] text-gray-800 leading-snug font-medium mb-1 whitespace-pre-wrap">{atv.descricao || ''}</p>
                 {atv.imagens?.length > 0 && (
                   <div className={`mt-2 grid ${atv.imagens.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-1 rounded-lg overflow-hidden`}>
                     {atv.imagens.map((img: any) => (
