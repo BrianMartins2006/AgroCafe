@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import { api } from '../services/api';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import { getMediaUrl } from '../utils/media';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 
 
 interface UserProfile {
@@ -67,7 +67,6 @@ const SettingsPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingTipo, setEditingTipo] = useState<TipoAtividade | null>(null);
   const [form, setForm] = useState({ nome: '', icone: 'Sprout', cor: 'bg-whatsapp-green' });
-  const [saving, setSaving] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   
   // PWA Install Prompt
@@ -129,51 +128,80 @@ const SettingsPage = () => {
     setShowModal(true);
   };
 
-  const handleSave = async () => {
-    if (!form.nome.trim()) return;
-    setSaving(true);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
       const endpoint = editingTipo ? `/api/v1/tipos-atividade/${editingTipo.id}` : '/api/v1/tipos-atividade';
-      const res = await (editingTipo ? api.put(endpoint, form) : api.post(endpoint, form));
+      return editingTipo ? api.put(endpoint, data) : api.post(endpoint, data);
+    },
+    onMutate: async (data: any) => {
+      await queryClient.cancelQueries({ queryKey: ['tipos-atividade'] });
+      const previous = queryClient.getQueryData(['tipos-atividade']);
 
-      if (res.ok) {
-        setShowModal(false);
-        toast.success(editingTipo ? "Categoria atualizada!" : "Categoria salva!");
-        queryClient.invalidateQueries({ queryKey: ['tipos-atividade'] });
-      } else {
-        const errorData = await res.json();
-        toast.error(errorData.erro || "Erro ao salvar categoria");
-      }
-    } catch (err) {
-      console.error("Erro ao salvar:", err);
-      toast.error("Erro ao comunicar com o servidor");
-    } finally {
-      setSaving(false);
+      const optimisticTipo = {
+        id: editingTipo ? editingTipo.id : Date.now(),
+        ...data
+      };
+
+      setShowModal(false);
+      setEditingTipo(null);
+      setForm({ nome: '', icone: 'Sprout', cor: 'bg-whatsapp-green' });
+
+      queryClient.setQueryData(['tipos-atividade'], (old: any) => {
+        if (!old) return old;
+        if (editingTipo) {
+          return old.map((t: any) => t.id === optimisticTipo.id ? optimisticTipo : t);
+        }
+        return [...old, optimisticTipo];
+      });
+
+      return { previous };
+    },
+    onError: (_err, _data, context: any) => {
+      queryClient.setQueryData(['tipos-atividade'], context.previous);
+      toast.error("Erro ao salvar categoria.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipos-atividade'] });
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/api/v1/tipos-atividade/${id}`),
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ['tipos-atividade'] });
+      const previous = queryClient.getQueryData(['tipos-atividade']);
+
+      queryClient.setQueryData(['tipos-atividade'], (old: any) => {
+        if (!old) return old;
+        return old.filter((t: any) => t.id !== id);
+      });
+
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      queryClient.setQueryData(['tipos-atividade'], context.previous);
+      toast.error("Erro ao excluir categoria.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipos-atividade'] });
+    }
+  });
+
+  const handleSave = () => {
+    if (!form.nome.trim()) return;
+    saveMutation.mutate(form);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
     toast((t) => (
       <div className="flex flex-col gap-3">
         <span className="font-bold">Excluir esta categoria?</span>
         <div className="flex gap-2">
           <button 
             className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs"
-            onClick={async () => {
+            onClick={() => {
               toast.dismiss(t.id);
-              try {
-                const res = await api.delete(`/api/v1/tipos-atividade/${id}`);
-                if (res.ok) {
-                  queryClient.invalidateQueries({ queryKey: ['tipos-atividade'] });
-                  toast.success("Excluída com sucesso");
-                } else {
-                  const data = await res.json();
-                  toast.error(data.erro || "Erro ao excluir categoria.");
-                }
-              } catch (err) {
-                console.error("Erro ao deletar:", err);
-                toast.error("Erro ao excluir categoria.");
-              }
+              deleteMutation.mutate(id);
             }}
           >
             Sim, Excluir
@@ -383,10 +411,10 @@ const SettingsPage = () => {
               <button onClick={() => setShowModal(false)} className="flex-1 py-4 text-xs font-black text-gray-400 hover:bg-gray-100 rounded-2xl transition-all">CANCELAR</button>
               <button 
                 onClick={handleSave}
-                disabled={saving || !form.nome.trim()}
+                disabled={!form.nome.trim()}
                 className="flex-[2] py-4 bg-whatsapp-teal text-white font-black rounded-2xl shadow-xl shadow-whatsapp-teal/20 hover:bg-whatsapp-teal-dark active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><Check size={18} /> SALVAR</>}
+                <Check size={18} /> SALVAR
               </button>
             </div>
           </div>

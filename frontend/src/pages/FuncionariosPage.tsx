@@ -6,7 +6,7 @@ import {
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 import { api } from '../services/api';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 
 
 interface Funcionario {
@@ -34,46 +34,81 @@ const FuncionariosPage = () => {
     contato: ''
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
       const endpoint = editingFunc ? `/api/v1/funcionarios/${editingFunc.id_funcionario}` : '/api/v1/funcionarios';
-      const res = await (editingFunc ? api.put(endpoint, form) : api.post(endpoint, form));
+      return editingFunc ? api.put(endpoint, data) : api.post(endpoint, data);
+    },
+    onMutate: async (data: any) => {
+      await queryClient.cancelQueries({ queryKey: ['funcionarios'] });
+      const previous = queryClient.getQueryData(['funcionarios']);
 
-      if (res.ok) {
-        setIsModalOpen(false);
-        setEditingFunc(null);
-        setForm({ nome: '', cargo: '', salario_hora: '', contato: '' });
-        toast.success(editingFunc ? "Funcionário atualizado!" : "Funcionário cadastrado!");
-        queryClient.invalidateQueries({ queryKey: ['funcionarios'] });
-      } else {
-        toast.error("Erro ao salvar funcionário.");
-      }
-    } catch (err) {
-      console.error("Erro ao salvar funcionário:", err);
-      toast.error("Erro de conexão.");
+      const optimisticFunc = {
+        id_funcionario: editingFunc ? editingFunc.id_funcionario : Date.now(),
+        ...data,
+        salario_hora: Number(data.salario_hora)
+      };
+
+      setIsModalOpen(false);
+      setEditingFunc(null);
+      setForm({ nome: '', cargo: '', salario_hora: '', contato: '' });
+
+      queryClient.setQueryData(['funcionarios'], (old: any) => {
+        if (!old) return old;
+        if (editingFunc) {
+          return old.map((f: any) => f.id_funcionario === optimisticFunc.id_funcionario ? optimisticFunc : f);
+        }
+        return [...old, optimisticFunc];
+      });
+
+      return { previous };
+    },
+    onError: (_err, _data, context: any) => {
+      queryClient.setQueryData(['funcionarios'], context.previous);
+      toast.error("Erro ao salvar funcionário.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['funcionarios'] });
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/api/v1/funcionarios/${id}`),
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ['funcionarios'] });
+      const previous = queryClient.getQueryData(['funcionarios']);
+
+      queryClient.setQueryData(['funcionarios'], (old: any) => {
+        if (!old) return old;
+        return old.filter((f: any) => f.id_funcionario !== id);
+      });
+
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      queryClient.setQueryData(['funcionarios'], context.previous);
+      toast.error("Erro ao excluir.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['funcionarios'] });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(form);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
     toast((t) => (
       <div className="flex flex-col gap-3">
         <span className="font-bold">Excluir este funcionário?</span>
         <div className="flex gap-2">
           <button 
             className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs"
-            onClick={async () => {
+            onClick={() => {
               toast.dismiss(t.id);
-              try {
-                const res = await api.delete(`/api/v1/funcionarios/${id}`);
-                if (res.ok) {
-                  queryClient.invalidateQueries({ queryKey: ['funcionarios'] });
-                  toast.success("Excluído com sucesso");
-                }
-              } catch (err) {
-                console.error("Erro ao excluir:", err);
-                toast.error("Erro ao excluir.");
-              }
+              deleteMutation.mutate(id);
             }}
           >
             Sim, Excluir

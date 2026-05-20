@@ -14,6 +14,7 @@ import { api } from '../services/api';
 import { compressImage } from '../utils/imageCompression';
 import { Clock, Check as CheckIcon } from 'lucide-react';
 import { getMediaUrl } from '../utils/media';
+import toast from 'react-hot-toast';
 
 
 
@@ -95,27 +96,6 @@ const ChatPage = () => {
       await queryClient.cancelQueries({ queryKey: ['atividades', id] });
       const previousAtividades = queryClient.getQueryData(['atividades', id]);
 
-      // Adiciona atividade otimista
-      const optimisticAtv = {
-        id: Date.now(), // ID temporário
-        ...newData,
-        id_lavoura: Number(id),
-        tipo: tipos.find((t: any) => t.id === newData.id_tipo_atividade),
-        imagens: newData.fotos.map((url: string) => ({ id: Math.random(), foto_url: url })),
-        status: 'pending' // Flag para UI
-      };
-
-      queryClient.setQueryData(['atividades', id], (old: any) => [...(old || []), optimisticAtv]);
-
-      return { previousAtividades };
-    },
-    onError: (_err, _newData, context: any) => {
-      queryClient.setQueryData(['atividades', id], context.previousAtividades);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['atividades', id] });
-    },
-    onSuccess: () => {
       setNewAtvForm({ 
         descricao: '', 
         id_tipo_atividade: tipos[0]?.id || 0, 
@@ -124,6 +104,25 @@ const ChatPage = () => {
         fotos: [] 
       });
       setShowNewModal(false);
+
+      const optimisticAtv = {
+        id: Date.now(),
+        ...newData,
+        id_lavoura: Number(id),
+        tipo: tipos.find((t: any) => t.id === newData.id_tipo_atividade),
+        imagens: newData.fotos.map((url: string) => ({ id: Math.random(), foto_url: url })),
+        status: 'pending'
+      };
+
+      queryClient.setQueryData(['atividades', id], (old: any) => [...(old || []), optimisticAtv]);
+      return { previousAtividades };
+    },
+    onError: (_err, _newData, context: any) => {
+      queryClient.setQueryData(['atividades', id], context.previousAtividades);
+      toast.error('Erro ao registrar atividade. Tente novamente.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['atividades', id] });
     }
   });
 
@@ -135,17 +134,45 @@ const ChatPage = () => {
       data: atv.data,
       fotos: atv.imagens.map((img: any) => img.foto_url)
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['atividades', id] });
+    onMutate: async (atv: any) => {
+      await queryClient.cancelQueries({ queryKey: ['atividades', id] });
+      const previous = queryClient.getQueryData(['atividades', id]);
       setEditingAtv(null);
+
+      queryClient.setQueryData(['atividades', id], (old: any) => {
+        if (!old) return old;
+        return old.map((o: any) => o.id === atv.id ? { ...o, ...atv, status: 'pending' } : o);
+      });
+      return { previous };
+    },
+    onError: (_err, _atv, context: any) => {
+      queryClient.setQueryData(['atividades', id], context.previous);
+      toast.error('Erro ao atualizar atividade.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['atividades', id] });
     }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (atvId: number) => api.delete(`/api/v1/atividades/${atvId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['atividades', id] });
+    onMutate: async (atvId: number) => {
+      await queryClient.cancelQueries({ queryKey: ['atividades', id] });
+      const previous = queryClient.getQueryData(['atividades', id]);
       setDeletingId(null);
+
+      queryClient.setQueryData(['atividades', id], (old: any) => {
+        if (!old) return old;
+        return old.filter((o: any) => o.id !== atvId);
+      });
+      return { previous };
+    },
+    onError: (_err, _atvId, context: any) => {
+      queryClient.setQueryData(['atividades', id], context.previous);
+      toast.error('Erro ao excluir atividade.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['atividades', id] });
     }
   });
 

@@ -6,7 +6,7 @@ import {
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
 import { api } from '../services/api';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 
 interface Maquinario {
   id_maquina: number;
@@ -33,46 +33,82 @@ const MaquinariosPage = () => {
     consumo_medio: ''
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
       const endpoint = editingMaq ? `/api/v1/maquinarios/${editingMaq.id_maquina}` : '/api/v1/maquinarios';
-      const res = await (editingMaq ? api.put(endpoint, form) : api.post(endpoint, form));
+      return editingMaq ? api.put(endpoint, data) : api.post(endpoint, data);
+    },
+    onMutate: async (data: any) => {
+      await queryClient.cancelQueries({ queryKey: ['maquinarios'] });
+      const previous = queryClient.getQueryData(['maquinarios']);
 
-      if (res.ok) {
-        setIsModalOpen(false);
-        setEditingMaq(null);
-        setForm({ tipo: '', modelo: '', valor_hora: '', consumo_medio: '' });
-        toast.success(editingMaq ? "Máquina atualizada!" : "Máquina cadastrada!");
-        queryClient.invalidateQueries({ queryKey: ['maquinarios'] });
-      } else {
-        toast.error("Erro ao salvar máquina.");
-      }
-    } catch (err) {
-      console.error("Erro ao salvar maquinário:", err);
-      toast.error("Erro de conexão.");
+      const optimisticMaq = {
+        id_maquina: editingMaq ? editingMaq.id_maquina : Date.now(),
+        ...data,
+        valor_hora: Number(data.valor_hora),
+        consumo_medio: Number(data.consumo_medio)
+      };
+
+      setIsModalOpen(false);
+      setEditingMaq(null);
+      setForm({ tipo: '', modelo: '', valor_hora: '', consumo_medio: '' });
+
+      queryClient.setQueryData(['maquinarios'], (old: any) => {
+        if (!old) return old;
+        if (editingMaq) {
+          return old.map((m: any) => m.id_maquina === optimisticMaq.id_maquina ? optimisticMaq : m);
+        }
+        return [...old, optimisticMaq];
+      });
+
+      return { previous };
+    },
+    onError: (_err, _data, context: any) => {
+      queryClient.setQueryData(['maquinarios'], context.previous);
+      toast.error("Erro ao salvar máquina.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['maquinarios'] });
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/api/v1/maquinarios/${id}`),
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ['maquinarios'] });
+      const previous = queryClient.getQueryData(['maquinarios']);
+
+      queryClient.setQueryData(['maquinarios'], (old: any) => {
+        if (!old) return old;
+        return old.filter((m: any) => m.id_maquina !== id);
+      });
+
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      queryClient.setQueryData(['maquinarios'], context.previous);
+      toast.error("Erro ao excluir.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['maquinarios'] });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(form);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
     toast((t) => (
       <div className="flex flex-col gap-3">
         <span className="font-bold">Excluir este maquinário?</span>
         <div className="flex gap-2">
           <button 
             className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs"
-            onClick={async () => {
+            onClick={() => {
               toast.dismiss(t.id);
-              try {
-                const res = await api.delete(`/api/v1/maquinarios/${id}`);
-                if (res.ok) {
-                  queryClient.invalidateQueries({ queryKey: ['maquinarios'] });
-                  toast.success("Excluído com sucesso");
-                }
-              } catch (err) {
-                console.error("Erro ao excluir:", err);
-                toast.error("Erro ao excluir.");
-              }
+              deleteMutation.mutate(id);
             }}
           >
             Sim, Excluir
