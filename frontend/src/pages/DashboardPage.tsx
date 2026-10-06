@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
   XAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,18 +14,15 @@ import { api } from '../services/api';
 const COLORS = ['#008069', '#25D366', '#34B7F1', '#ECE5DD', '#FFBC2C'];
 
 const DashboardPage = () => {
-  const navigate = useNavigate();
-
   const { data: lavouras = [], isLoading: loadLav } = useQuery({
     queryKey: ['lavouras'],
     queryFn: () => api.get('/api/v1/lavouras').then(res => res.json())
   });
 
-  const { data: atividadesData, isLoading: loadAtv } = useQuery({
+  const { data: atividades = [], isLoading: loadAtv } = useQuery({
     queryKey: ['feed'],
     queryFn: () => api.get('/api/v1/feed').then(res => res.json())
   });
-  const atividades: any[] = Array.isArray(atividadesData) ? atividadesData : [];
 
   const { data: funcionarios = [], isLoading: loadFunc } = useQuery({
     queryKey: ['funcionarios'],
@@ -197,10 +193,7 @@ const DashboardPage = () => {
 
         {/* Recursos Humanos e Frota */}
         <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => navigate('/funcionarios')}
-            className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-50 flex items-center gap-4 active:scale-95 transition-all text-left"
-          >
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-50 flex items-center gap-4">
             <div className="p-3 bg-blue-50 text-blue-500 rounded-2xl">
               <Users size={24} />
             </div>
@@ -208,12 +201,9 @@ const DashboardPage = () => {
               <h4 className="text-xl font-black text-gray-900">{stats.totalFuncionarios}</h4>
               <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Equipe</p>
             </div>
-          </button>
+          </div>
 
-          <button
-            onClick={() => navigate('/maquinarios')}
-            className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-50 flex items-center gap-4 active:scale-95 transition-all text-left"
-          >
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-50 flex items-center gap-4">
             <div className="p-3 bg-orange-50 text-orange-500 rounded-2xl">
               <Truck size={24} />
             </div>
@@ -221,7 +211,7 @@ const DashboardPage = () => {
               <h4 className="text-xl font-black text-gray-900">{stats.totalMaquinarios}</h4>
               <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Frota</p>
             </div>
-          </button>
+          </div>
         </div>
       </div>
     </Layout>
